@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd surface structures, star trails, and HUD improvements\n\n- Add wireframe towers/pylons on planet surface \\(Phase C\\)\n- Structures appear below 2000m altitude with distance-based fading\n- Occlusion culling hides objects behind planet\n- Star trails during turbo speed for motion sensation\n- Turbo screen shake that fades at 90% max speed\n- Improved HUD with speed display, throttle bar, and crosshair\n- Reduce FOV to 30 degrees to minimize projection artifacts\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}

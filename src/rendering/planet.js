@@ -31,77 +31,80 @@ export function drawPlanetDisk(ctx, cam, planet, tAtmo, sun, nearPlane) {
 
   if (rPlanet < 0.5) return;
 
-  // Calculate sun direction in camera space
-  const sunDir = sun.direction;
-  const sunInCam = {
-    x: Vec3.dot(sunDir, cam.R),
-    y: Vec3.dot(sunDir, cam.U),
-    z: Vec3.dot(sunDir, cam.F),
-  };
+  // Project sun position to screen to get the direction from planet to sun ON SCREEN
+  const sunProj = projectPoint(sun.position, cam, nearPlane);
 
-  // Terminator angle (rotation of the light/dark division on screen)
-  // Note: Canvas Y is flipped (down is positive), so negate sunInCam.y
-  const terminatorAngle = Math.atan2(-sunInCam.y, sunInCam.x);
+  let terminatorAngle;
+  if (sunProj) {
+    // Sun is visible - calculate angle from planet center to sun center on screen
+    const dx = sunProj.sx - pr.sx;
+    const dy = sunProj.sy - pr.sy;
+    // The lit side faces toward the sun, terminator is perpendicular to this
+    terminatorAngle = Math.atan2(dy, dx);
+  } else {
+    // Sun is behind camera - use the planet-to-sun direction projected onto screen plane
+    const planetToSun = Vec3.sub(sun.position, planet.position).norm();
+    const sunInCam = {
+      x: Vec3.dot(planetToSun, cam.R),
+      y: Vec3.dot(planetToSun, cam.U),
+    };
+    terminatorAngle = Math.atan2(-sunInCam.y, sunInCam.x);
+  }
 
-  // How much the sun is facing us vs to the side
-  // sunInCam.z > 0 means sun is in front (we see lit side)
-  // sunInCam.z < 0 means sun is behind (we see dark side)
-  const sunDepth = sunInCam.z;
+  // Calculate the phase angle to determine how much lit vs dark side we see
+  const planetToSun = Vec3.sub(sun.position, planet.position).norm();
+  const planetToCamera = Vec3.sub(cam.C, planet.position).norm();
 
-  // The terminator ellipse width depends on how "edge-on" we view the lighting
-  // When sun is directly to side (z=0), terminator is a line (ellipse width = 0)
-  // When sun is in front/behind (z=±1), we see full lit/dark (ellipse = full circle)
-  const lateralLen = Math.sqrt(sunInCam.x * sunInCam.x + sunInCam.y * sunInCam.y);
-  const ellipseRatio = Math.abs(sunDepth) / Math.max(0.001, Math.sqrt(sunDepth * sunDepth + lateralLen * lateralLen));
+  // phase: how much of the lit hemisphere faces the camera
+  // +1 = camera on same side as sun (full lit), -1 = camera opposite sun (full dark)
+  const phase = Vec3.dot(planetToSun, planetToCamera);
 
   ctx.save();
 
-  // Draw dark side as base
+  // Draw dark side as base (full circle)
   ctx.fillStyle = planet.colors.surfaceDark || mulRgb(planet.colors.surface, 0.5);
   ctx.beginPath();
   ctx.arc(pr.sx, pr.sy, rPlanet, 0, Math.PI * 2);
   ctx.fill();
 
-  // Draw lit side using ellipse clipping
+  // Draw the lit portion on top
+  // After rotating by terminatorAngle, +x points toward the sun
+  // The lit hemisphere is on the +x side of the terminator
+
   ctx.fillStyle = planet.colors.surface;
+  ctx.save();
+  ctx.translate(pr.sx, pr.sy);
+  ctx.rotate(terminatorAngle);
+
+  // termWidth: how curved the terminator appears (0 = straight line, rPlanet = full curve)
+  const termWidth = Math.abs(phase) * rPlanet;
+
   ctx.beginPath();
 
-  if (sunDepth > 0.01) {
-    // Sun is in front - lit side faces us
-    // Draw lit crescent on sun-facing side
-    ctx.save();
-    ctx.translate(pr.sx, pr.sy);
-    ctx.rotate(terminatorAngle);
-    // Half circle on lit side (toward sun direction, which is +x after rotation)
+  if (phase >= 0) {
+    // Camera sees mostly lit side (camera on sun's side)
+    // Draw semicircle on +x, close with ellipse curving into -x (dark side)
     ctx.arc(0, 0, rPlanet, -Math.PI / 2, Math.PI / 2);
-    // Elliptical arc back (the terminator curve)
-    ctx.ellipse(0, 0, rPlanet * ellipseRatio, rPlanet, 0, Math.PI / 2, -Math.PI / 2, true);
+    if (termWidth > 0.01) {
+      // Ellipse curves into the dark side (-x), counterclockwise from bottom to top
+      ctx.ellipse(0, 0, termWidth, rPlanet, 0, Math.PI / 2, -Math.PI / 2, true);
+    }
     ctx.closePath();
     ctx.fill();
-    ctx.restore();
-  } else if (sunDepth < -0.01) {
-    // Sun is behind - dark side faces us
-    // Draw lit crescent on the far side (away from camera, toward sun)
-    ctx.save();
-    ctx.translate(pr.sx, pr.sy);
-    ctx.rotate(terminatorAngle);
-    // Half circle on lit side (opposite to camera)
-    ctx.arc(0, 0, rPlanet, Math.PI / 2, -Math.PI / 2);
-    // Elliptical arc back (the terminator curve)
-    ctx.ellipse(0, 0, rPlanet * ellipseRatio, rPlanet, 0, -Math.PI / 2, Math.PI / 2, true);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
   } else {
-    // Sun is roughly to the side - simple half/half split
-    // Lit side is toward the sun (+x direction after rotation by terminatorAngle)
-    ctx.save();
-    ctx.translate(pr.sx, pr.sy);
-    ctx.rotate(terminatorAngle);
+    // Camera sees mostly dark side (camera opposite from sun)
+    // Draw just a lit crescent on the +x edge
+    // The crescent is bounded by the planet edge on +x and terminator curving into +x
     ctx.arc(0, 0, rPlanet, -Math.PI / 2, Math.PI / 2);
+    if (termWidth > 0.01) {
+      // Ellipse curves into the lit side (+x), clockwise from bottom to top
+      ctx.ellipse(0, 0, termWidth, rPlanet, 0, Math.PI / 2, -Math.PI / 2, false);
+    }
+    ctx.closePath();
     ctx.fill();
-    ctx.restore();
   }
+
+  ctx.restore();
 
   // Lit side rim highlight
   ctx.globalAlpha = 0.35;

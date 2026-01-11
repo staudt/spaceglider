@@ -5,16 +5,17 @@ export const config = {
   },
 
   camera: {
-    fovDeg: 50,
+    fovDeg: 30,
     nearPlane: 0.1,
   },
 
   ship: {
     cruiseSpeed: 500,      // speed at 100% throttle
-    turboSpeed: 2000,      // speed when holding W
+    turboSpeed: 4000,      // speed when holding W
     speedResponse: 1.0,    // ~3 seconds to reach target (higher = faster)
     cushionHeight: 120,
     initialThrust: 0.2,
+    turboShake: 3,         // screen shake intensity during turbo
   },
 
   controls: {
@@ -39,6 +40,12 @@ export const config = {
       { count: 500, halfSize: 10000, parallax: 0.55, sizeMin: 1, sizeMax: 2 },
       { count: 300, halfSize: 8000, parallax: 0.9, sizeMin: 1, sizeMax: 3 },
     ],
+  },
+
+  structures: {
+    count: 80,
+    maxVisibleAltitude: 2000,
+    colors: ["#ff6600", "#ffaa00", "#ff4400", "#ff8800"],
   },
 
   defaultPlanet: {

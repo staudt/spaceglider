@@ -6,6 +6,7 @@ import { createStarLayers, drawStars } from "./rendering/stars.js";
 import { drawPlanetDisk } from "./rendering/planet.js";
 import { drawSun } from "./rendering/sun.js";
 import { drawHud } from "./rendering/hud.js";
+import { drawSurfaceObjects } from "./rendering/structures.js";
 import { applyGlideCushion } from "./simulation/physics.js";
 import {
   createShip,
@@ -83,25 +84,49 @@ function step(now) {
   }
 
   const cam = createCamera(ship, canvas, config);
+  const speed = ship.vel.len();
 
   const starFade = info ? clamp(info.tAtmo * 0.9, 0, 1) : 0;
   const skyColor = info
     ? mixRgb(config.visuals.spaceBg, planet.colors.sky, info.tAtmo * 0.7)
     : config.visuals.spaceBg;
 
+  // Apply turbo screen shake (only while accelerating, stops at 90% speed)
+  const isTurbo = keys.has("KeyW");
+  const turboShakeActive = isTurbo && config.ship.turboShake > 0 && speed < config.ship.turboSpeed * 0.9;
+  if (turboShakeActive) {
+    // Shake intensity peaks in the middle of acceleration, fades near target
+    const speedRatio = speed / (config.ship.turboSpeed * 0.9);
+    const shakeIntensity = 1 - speedRatio; // Full shake at start, zero at 90%
+    const shake = config.ship.turboShake * shakeIntensity;
+    const offsetX = (Math.random() - 0.5) * shake * 2;
+    const offsetY = (Math.random() - 0.5) * shake * 2;
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+  }
+
   ctx.fillStyle = skyColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  drawStars(ctx, canvas, cam, starLayers, starFade, config.camera.nearPlane);
+  drawStars(ctx, canvas, cam, starLayers, starFade, config.camera.nearPlane, speed, config.ship.turboSpeed);
   drawSun(ctx, cam, universe.sun, config.camera.nearPlane);
 
   if (planet && info) {
     drawPlanetDisk(ctx, cam, planet, info.tAtmo, universe.sun, config.camera.nearPlane);
+
+    // Draw surface structures (towers, pylons)
+    const objects = universe.surfaceObjects.get(planet);
+    if (objects) {
+      drawSurfaceObjects(ctx, cam, planet, objects, info.altitude, config.camera.nearPlane, config);
+    }
   }
 
   const altitude = info?.altitude ?? 0;
-  const speed = ship.vel.len();
   drawHud(ctx, canvas, ship, altitude, speed, pointerLocked, keys);
+
+  if (turboShakeActive) {
+    ctx.restore();
+  }
 
   requestAnimationFrame(step);
 }

@@ -1,4 +1,5 @@
 import { Vec3, clamp } from "../core/math.js";
+import { createSurfaceObjects } from "../rendering/structures.js";
 
 export function createSun(config) {
   // Sun direction normalized - positioned "up and right" in world space
@@ -36,7 +37,13 @@ export function createUniverse(config) {
   ];
   const sun = createSun(config);
 
-  return { planets, sun };
+  // Generate surface objects for each planet
+  const surfaceObjects = new Map();
+  for (const planet of planets) {
+    surfaceObjects.set(planet, createSurfaceObjects(planet, config));
+  }
+
+  return { planets, sun, surfaceObjects };
 }
 
 export function nearestPlanetInfo(shipPos, planets) {
