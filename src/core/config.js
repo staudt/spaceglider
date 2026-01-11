@@ -5,7 +5,7 @@ export const config = {
   },
 
   camera: {
-    fovDeg: 75,
+    fovDeg: 50,
     nearPlane: 0.1,
   },
 
