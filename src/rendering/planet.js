@@ -1,6 +1,7 @@
+import { Vec3 } from "../core/math.js";
 import { projectPoint, mulRgb } from "./camera.js";
 
-export function drawPlanetDisk(ctx, cam, planet, tAtmo, nearPlane) {
+export function drawPlanetDisk(ctx, cam, planet, tAtmo, sun, nearPlane) {
   const pr = projectPoint(planet.position, cam, nearPlane);
   if (!pr) return;
 
@@ -30,20 +31,51 @@ export function drawPlanetDisk(ctx, cam, planet, tAtmo, nearPlane) {
 
   if (rPlanet < 0.5) return;
 
+  // Calculate sun direction in screen space for terminator
+  const sunDir = sun.direction;
+
+  // Project sun direction onto camera plane to find terminator angle
+  const sunInCam = {
+    x: Vec3.dot(sunDir, cam.R),
+    y: Vec3.dot(sunDir, cam.U),
+    z: Vec3.dot(sunDir, cam.F),
+  };
+
+  // Angle of sun direction projected onto screen
+  const terminatorAngle = Math.atan2(sunInCam.y, sunInCam.x);
+
   ctx.save();
 
-  // Planet body inner circle
-  ctx.fillStyle = planet.colors.surface;
+  // Dark side (shadow) - draw first as base
+  ctx.fillStyle = planet.colors.surfaceDark || mulRgb(planet.colors.surface, 0.5);
   ctx.beginPath();
   ctx.arc(pr.sx, pr.sy, rPlanet, 0, Math.PI * 2);
   ctx.fill();
 
-  // Rim
-  ctx.globalAlpha = 0.28;
-  ctx.strokeStyle = mulRgb(planet.colors.surface, 1.25);
-  ctx.lineWidth = Math.max(1, rPlanet * 0.02);
+  // Lit side - draw as half circle on sun-facing side
+  ctx.fillStyle = planet.colors.surface;
   ctx.beginPath();
-  ctx.arc(pr.sx, pr.sy, rPlanet * 0.985, 0, Math.PI * 2);
+  ctx.arc(
+    pr.sx,
+    pr.sy,
+    rPlanet,
+    terminatorAngle - Math.PI / 2,
+    terminatorAngle + Math.PI / 2
+  );
+  ctx.fill();
+
+  // Lit side rim highlight
+  ctx.globalAlpha = 0.35;
+  ctx.strokeStyle = mulRgb(planet.colors.surface, 1.3);
+  ctx.lineWidth = Math.max(1, rPlanet * 0.025);
+  ctx.beginPath();
+  ctx.arc(
+    pr.sx,
+    pr.sy,
+    rPlanet * 0.97,
+    terminatorAngle - Math.PI / 2.5,
+    terminatorAngle + Math.PI / 2.5
+  );
   ctx.stroke();
 
   ctx.restore();

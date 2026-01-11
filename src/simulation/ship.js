@@ -1,12 +1,12 @@
 import { Vec3, Quat, clamp, lerp } from "../core/math.js";
 
 export function createShip(config) {
+  const initialSpeed = config.ship.initialThrust * config.ship.cruiseSpeed;
   return {
     pos: new Vec3(0, 0, 0),
-    vel: new Vec3(0, 0, config.ship.initialVelocityZ),
+    vel: new Vec3(0, 0, initialSpeed),
     q: new Quat(0, 0, 0, 1),
     thrustSet: config.ship.initialThrust,
-    thrustActual: 0.0,
   };
 }
 
@@ -35,28 +35,35 @@ export function handleMouseLook(ship, dx, dy, config) {
   ship.q = Quat.mul(qPitch, Quat.mul(qYaw, ship.q)).norm();
 }
 
-export function computeShipAcceleration(ship, keys, dt, config) {
-  const F = ship.q.rotateVec(new Vec3(0, 0, 1)).norm();
+export function updateShipSpeed(ship, keys, dt, config) {
+  const forward = ship.q.rotateVec(new Vec3(0, 0, 1)).norm();
 
-  let thrustTarget = ship.thrustSet * config.ship.thrustMax;
+  // Calculate target speed based on throttle or turbo
+  let targetSpeed;
   if (keys.has("KeyW")) {
-    thrustTarget *= config.ship.turboMultiplier;
+    targetSpeed = config.ship.turboSpeed;
+  } else if (keys.has("KeyS")) {
+    targetSpeed = 0;
+  } else {
+    targetSpeed = ship.thrustSet * config.ship.cruiseSpeed;
   }
 
-  const k = 1 - Math.exp(-dt * config.ship.thrustResponse);
-  ship.thrustActual = lerp(ship.thrustActual, thrustTarget, k);
+  // Get current speed along forward direction
+  const currentForwardSpeed = Vec3.dot(ship.vel, forward);
 
-  const accel = Vec3.mul(F, ship.thrustActual / config.ship.mass);
+  // Smoothly interpolate toward target speed (~3 seconds to reach)
+  const k = 1 - Math.exp(-dt * config.ship.speedResponse);
+  const newForwardSpeed = lerp(currentForwardSpeed, targetSpeed, k);
 
-  if (keys.has("KeyS")) {
-    const speed = ship.vel.len();
-    if (speed > 0.5) {
-      const brakeDir = ship.vel.clone().mul(-1).norm();
-      accel.add(Vec3.mul(brakeDir, config.ship.brakeMax / config.ship.mass));
-    }
-  }
+  // Decompose velocity into forward and lateral components
+  const forwardVel = Vec3.mul(forward, currentForwardSpeed);
+  const lateralVel = Vec3.sub(ship.vel, forwardVel);
 
-  return accel;
+  // Dampen lateral velocity slightly for arcade feel
+  lateralVel.mul(1 - k * 0.5);
+
+  // Reconstruct velocity with new forward speed
+  ship.vel = Vec3.add(Vec3.mul(forward, newForwardSpeed), lateralVel);
 }
 
 export function adjustThrust(ship, delta, config) {

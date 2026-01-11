@@ -10,15 +10,11 @@ export const config = {
   },
 
   ship: {
-    mass: 1.0,
-    thrustMax: 140,
-    brakeMax: 140,
-    turboMultiplier: 2.6,
-    thrustResponse: 8.0,
-    maxSpeed: 0, // 0 = unlimited
+    cruiseSpeed: 500,      // speed at 100% throttle
+    turboSpeed: 2000,      // speed when holding W
+    speedResponse: 1.0,    // ~3 seconds to reach target (higher = faster)
     cushionHeight: 120,
     initialThrust: 0.2,
-    initialVelocityZ: 130,
   },
 
   controls: {
@@ -29,6 +25,12 @@ export const config = {
 
   visuals: {
     spaceBg: "#070611",
+  },
+
+  sun: {
+    color: "#f0d858",
+    size: 400,
+    distance: 50000,
   },
 
   stars: {
@@ -45,6 +47,7 @@ export const config = {
     GM: 4.6e8,
     colors: {
       surface: "#1ea33a",
+      surfaceDark: "#147025",
       sky: "#3a1f55",
       halo: "#8f5bc7",
     },

@@ -4,18 +4,14 @@ import { canvas, ctx } from "./rendering/canvas.js";
 import { createCamera, mixRgb } from "./rendering/camera.js";
 import { createStarLayers, drawStars } from "./rendering/stars.js";
 import { drawPlanetDisk } from "./rendering/planet.js";
+import { drawSun } from "./rendering/sun.js";
 import { drawHud } from "./rendering/hud.js";
-import {
-  computeGravity,
-  applyDrag,
-  applyGlideCushion,
-  integrate,
-} from "./simulation/physics.js";
+import { applyGlideCushion } from "./simulation/physics.js";
 import {
   createShip,
   updateShipOrientation,
   handleMouseLook,
-  computeShipAcceleration,
+  updateShipSpeed,
   adjustThrust,
   setThrustPreset,
 } from "./simulation/ship.js";
@@ -72,18 +68,15 @@ function step(now) {
   const dt = Math.min(realDt, config.time.dtClamp) * config.time.scale;
 
   updateShipOrientation(ship, keys, dt, config);
+  updateShipSpeed(ship, keys, dt, config);
+
+  // Move ship
+  ship.pos.x += ship.vel.x * dt;
+  ship.pos.y += ship.vel.y * dt;
+  ship.pos.z += ship.vel.z * dt;
 
   const info = nearestPlanetInfo(ship.pos, universe.planets);
   const planet = info?.planet;
-
-  const accel = computeShipAcceleration(ship, keys, dt, config);
-
-  if (planet) {
-    accel.add(computeGravity(ship.pos, planet));
-    applyDrag(ship.vel, info.tAtmo, planet, dt);
-  }
-
-  integrate(ship, accel, dt, config.ship.maxSpeed);
 
   if (planet) {
     applyGlideCushion(ship, planet, config.ship.cushionHeight);
@@ -100,9 +93,10 @@ function step(now) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   drawStars(ctx, canvas, cam, starLayers, starFade, config.camera.nearPlane);
+  drawSun(ctx, cam, universe.sun, config.camera.nearPlane);
 
   if (planet && info) {
-    drawPlanetDisk(ctx, cam, planet, info.tAtmo, config.camera.nearPlane);
+    drawPlanetDisk(ctx, cam, planet, info.tAtmo, universe.sun, config.camera.nearPlane);
   }
 
   const altitude = info?.altitude ?? 0;

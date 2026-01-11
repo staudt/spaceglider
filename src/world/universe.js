@@ -1,5 +1,16 @@
 import { Vec3, clamp } from "../core/math.js";
 
+export function createSun(config) {
+  // Sun direction normalized - positioned "up and right" in world space
+  const direction = new Vec3(0.5, 0.8, 0.3).norm();
+  return {
+    direction,
+    position: Vec3.mul(direction, config.sun.distance),
+    color: config.sun.color,
+    size: config.sun.size,
+  };
+}
+
 export function createPlanet(options, defaults) {
   return {
     position: options.position || new Vec3(0, 0, 20000),
@@ -8,6 +19,7 @@ export function createPlanet(options, defaults) {
     GM: options.GM ?? defaults.GM,
     colors: {
       surface: options.colors?.surface ?? defaults.colors.surface,
+      surfaceDark: options.colors?.surfaceDark ?? defaults.colors.surfaceDark,
       sky: options.colors?.sky ?? defaults.colors.sky,
       halo: options.colors?.halo ?? defaults.colors.halo,
     },
@@ -22,8 +34,9 @@ export function createUniverse(config) {
   const planets = [
     createPlanet({ position: new Vec3(0, 0, 20000) }, config.defaultPlanet),
   ];
+  const sun = createSun(config);
 
-  return { planets };
+  return { planets, sun };
 }
 
 export function nearestPlanetInfo(shipPos, planets) {
