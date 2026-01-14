@@ -3,7 +3,8 @@ import { Vec3, Quat, clamp, lerp } from "../core/math.js";
 export function createShip(config) {
   const initialSpeed = config.ship.initialThrust * config.ship.cruiseSpeed;
   return {
-    pos: new Vec3(0, 0, 0),
+    // Start in open space between planets
+    pos: new Vec3(0, 0, -60000),
     vel: new Vec3(0, 0, initialSpeed),
     q: new Quat(0, 0, 0, 1),
     thrustSet: config.ship.initialThrust,

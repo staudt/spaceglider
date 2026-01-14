@@ -69,7 +69,7 @@ export function drawHud(ctx, canvas, ship, altitude, speed, pointerLocked, keys,
 
   // Left panel - Speed and Altitude
   ctx.fillStyle = "rgba(0,0,0,0.3)";
-  ctx.fillRect(8, 40, 120, 50);
+  ctx.fillRect(8, 40, 180, 50);
 
   ctx.fillStyle = "rgba(255,255,255,0.9)";
   ctx.font = "bold 18px monospace";
@@ -81,7 +81,8 @@ export function drawHud(ctx, canvas, ship, altitude, speed, pointerLocked, keys,
   ctx.fillStyle = "rgba(255,255,255,0.9)";
   ctx.font = "bold 14px monospace";
   const altText = altitude > 1000 ? `${(altitude / 1000).toFixed(1)}km` : `${Math.round(altitude)}m`;
-  ctx.fillText(`ALT ${altText}`, 14, 82);
+  const planetName = planet?.name ? ` [${planet.name.toUpperCase()}]` : "";
+  ctx.fillText(`ALT ${altText}${planetName}`, 14, 82);
 
   // Throttle bar (bottom center)
   const barW = 200;

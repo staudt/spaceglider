@@ -1,6 +1,6 @@
 # Feature Builder Agent
 
-**Model**: sonnet (good balance of speed and capability for feature work)
+**Model**: opus (most capable for complex feature design and implementation)
 
 ## Purpose
 Design, implement, and integrate new features. Handle architecture decisions, file creation, and testing.

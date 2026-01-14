@@ -2,39 +2,42 @@ import { Vec3, clamp } from "../core/math.js";
 import { createSurfaceObjects } from "../rendering/structures.js";
 
 export function createSun(config) {
-  // Sun direction normalized - positioned "up and right" in world space
+  const pos = config.sun.position;
+  const position = new Vec3(pos[0], pos[1], pos[2]);
+  // Direction for lighting (from center outward, normalized)
   const direction = new Vec3(0.5, 0.8, 0.3).norm();
   return {
     direction,
-    position: Vec3.mul(direction, config.sun.distance),
+    position,
     color: config.sun.color,
     size: config.sun.size,
+    GM: config.sun.GM,
   };
 }
 
-export function createPlanet(options, defaults) {
+export function createPlanet(planetConfig) {
+  const pos = planetConfig.position;
   return {
-    position: options.position || new Vec3(0, 0, 20000),
-    radius: options.radius ?? defaults.radius,
-    atmosphereRadius: options.atmosphereRadius ?? defaults.atmosphereRadius,
-    GM: options.GM ?? defaults.GM,
+    name: planetConfig.name,
+    position: new Vec3(pos[0], pos[1], pos[2]),
+    radius: planetConfig.radius,
+    atmosphereRadius: planetConfig.atmosphereRadius,
+    GM: planetConfig.GM,
     colors: {
-      surface: options.colors?.surface ?? defaults.colors.surface,
-      surfaceDark: options.colors?.surfaceDark ?? defaults.colors.surfaceDark,
-      sky: options.colors?.sky ?? defaults.colors.sky,
-      halo: options.colors?.halo ?? defaults.colors.halo,
+      surface: planetConfig.colors.surface,
+      surfaceDark: planetConfig.colors.surfaceDark,
+      sky: planetConfig.colors.sky,
+      halo: planetConfig.colors.halo,
     },
     physics: {
-      dragStrength:
-        options.physics?.dragStrength ?? defaults.physics.dragStrength,
+      dragStrength: planetConfig.physics.dragStrength,
     },
   };
 }
 
 export function createUniverse(config) {
-  const planets = [
-    createPlanet({ position: new Vec3(0, 0, 20000) }, config.defaultPlanet),
-  ];
+  // Create all planets from config array
+  const planets = config.planets.map((p) => createPlanet(p));
   const sun = createSun(config);
 
   // Generate surface objects for each planet

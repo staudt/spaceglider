@@ -10,12 +10,12 @@ export const config = {
   },
 
   ship: {
-    cruiseSpeed: 500,      // speed at 100% throttle
-    turboSpeed: 4000,      // speed when holding W
+    cruiseSpeed: 1000,      // speed at 100% throttle
+    turboSpeed: 6000,      // speed when holding W
     speedResponse: 1.0,    // ~3 seconds to reach target (higher = faster)
-    cushionHeight: 120,
+    cushionHeight: 10,
     initialThrust: 0.2,
-    turboShake: 3,         // screen shake intensity during turbo
+    turboShake: 4,         // screen shake intensity during turbo
   },
 
   controls: {
@@ -33,8 +33,9 @@ export const config = {
 
   sun: {
     color: "#f0d858",
-    size: 400,
-    distance: 50000,
+    size: 12000,
+    position: [0, 0, 0],  // Center of the solar system
+    GM: 1e8,              // Weak gravity - planets dominate near them
   },
 
   stars: {
@@ -53,20 +54,80 @@ export const config = {
     colors: ["#ff6600", "#ffaa00", "#ff4400", "#ff8800"],
   },
 
-  defaultPlanet: {
-    radius: 6000,
-    atmosphereRadius: 11000,
-    GM: 4.6e8,
-    colors: {
-      surface: "#1ea33a",
-      surfaceDark: "#147025",
-      sky: "#3a1f55",
-      halo: "#8f5bc7",
+  // Planets orbiting the sun - each with unique characteristics
+  // Positioned in a wide orbital ring around the sun at (0, 0, 0)
+  planets: [
+    {
+      name: "Verdis",
+      position: [50000, 0, 0],
+      radius: 6000,
+      atmosphereRadius: 8000,
+      GM: 4.6e8,
+      colors: {
+        surface: "#1ea33a",
+        surfaceDark: "#0b3813",
+        sky: "#3a1f55",
+        halo: "#8f5bc7",
+      },
+      physics: { dragStrength: 0.18 },
     },
-    physics: {
-      dragStrength: 0.18,
+    {
+      name: "Inferno",
+      position: [-35355, 0, 35355],
+      radius: 1000,
+      atmosphereRadius: 1500,
+      GM: 4.2e8,
+      colors: {
+        surface: "#c44a1a",
+        surfaceDark: "#8b2f0d",
+        sky: "#2a1508",
+        halo: "#ff6b35",
+      },
+      physics: { dragStrength: 0.12 },
     },
-  },
+    {
+      name: "Glaciem",
+      position: [22000, 5000, -50000],
+      radius: 3000,
+      atmosphereRadius: 4000,
+      GM: 5.8e8,
+      colors: {
+        surface: "#4a9ebb",
+        surfaceDark: "#2d6b80",
+        sky: "#0a1a2a",
+        halo: "#7dd3fc",
+      },
+      physics: { dragStrength: 0.25 },
+    },
+    {
+      name: "Magma",
+      position: [65355, 0, 65355],
+      radius: 4000,
+      atmosphereRadius: 5200,
+      GM: 4.0e8,
+      colors: {
+        surface: "#b8860b",
+        surfaceDark: "#8b6508",
+        sky: "#1a1206",
+        halo: "#daa520",
+      },
+      physics: { dragStrength: 0.15 },
+    },
+    {
+      name: "Solitarius",
+      position: [140000, 2000, 10000],
+      radius: 2000,
+      atmosphereRadius: 2300,
+      GM: 4.0e8,
+      colors: {
+        surface: "#583072",
+        surfaceDark: "#030107",
+        sky: "#6f08c4",
+        halo: "#af20da",
+      },
+      physics: { dragStrength: 0.55 },
+    },
+  ],
 
   debug: {
     enabled: false,  // Toggle with 'D' key

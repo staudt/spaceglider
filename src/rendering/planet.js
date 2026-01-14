@@ -1,6 +1,32 @@
 import { Vec3 } from "../core/math.js";
 import { projectPoint, mulRgb } from "./camera.js";
 
+// Draw a small indicator for distant planets (always visible with minimum size)
+export function drawPlanetIndicator(ctx, cam, planet, nearPlane) {
+  const pr = projectPoint(planet.position, cam, nearPlane);
+  if (!pr) return;
+
+  const rPlanet = Math.max(6, (planet.radius / pr.zCam) * cam.focal);
+  const rAtmo = rPlanet * 1.2;
+
+  // Draw as a simple colored disk for distant planets
+  ctx.fillStyle = planet.colors.surface;
+  ctx.globalAlpha = 0.8;
+  ctx.beginPath();
+  ctx.arc(pr.sx, pr.sy, rAtmo, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Subtle halo for visibility
+  ctx.strokeStyle = planet.colors.halo;
+  ctx.globalAlpha = 0.3;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(pr.sx, pr.sy, rAtmo + 2, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.globalAlpha = 1.0;
+}
+
 export function drawPlanetDisk(ctx, cam, planet, tAtmo, sun, nearPlane, config) {
   const pr = projectPoint(planet.position, cam, nearPlane);
   if (!pr) return;
@@ -8,7 +34,11 @@ export function drawPlanetDisk(ctx, cam, planet, tAtmo, sun, nearPlane, config) 
   const rPlanet = (planet.radius / pr.zCam) * cam.focal;
   const rAtmo = (planet.atmosphereRadius / pr.zCam) * cam.focal;
 
-  if (rAtmo < 0.5) return;
+  // Use indicator if planet is too small for detail rendering
+  if (rAtmo < 8) {
+    drawPlanetIndicator(ctx, cam, planet, nearPlane);
+    return;
+  }
 
   ctx.save();
 

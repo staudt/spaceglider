@@ -1,4 +1,4 @@
-import { clamp } from "./core/math.js";
+import { clamp, Vec3 } from "./core/math.js";
 import { config } from "./core/config.js";
 import { canvas, ctx } from "./rendering/canvas.js";
 import { createCamera, mixRgb } from "./rendering/camera.js";
@@ -8,7 +8,7 @@ import { drawSun } from "./rendering/sun.js";
 import { drawHud } from "./rendering/hud.js";
 import { drawDebugHud } from "./rendering/debug-hud.js";
 import { drawSurfaceObjects } from "./rendering/structures.js";
-import { applyGlideCushion } from "./simulation/physics.js";
+import { applyGlideCushion, computeTotalGravity } from "./simulation/physics.js";
 import {
   createShip,
   updateShipOrientation,
@@ -76,6 +76,10 @@ function step(now) {
   updateShipOrientation(ship, keys, dt, config);
   updateShipSpeed(ship, keys, dt, config);
 
+  // Apply multi-body gravity (all planets + sun)
+  const gravity = computeTotalGravity(ship.pos, universe.planets, universe.sun);
+  ship.vel.add(gravity.mul(dt));
+
   // Move ship
   ship.pos.x += ship.vel.x * dt;
   ship.pos.y += ship.vel.y * dt;
@@ -125,16 +129,52 @@ function step(now) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   drawStars(ctx, canvas, cam, starLayers, starFade, config.camera.nearPlane, speed, config.ship.turboSpeed);
-  drawSun(ctx, cam, universe.sun, config.camera.nearPlane);
 
+  // Collect drawable objects with camera distance for depth sorting
+  const drawables = [];
+
+  // Add sun
+  const sunDist = Vec3.sub(universe.sun.position, cam.C).len();
+  drawables.push({
+    type: 'sun',
+    distance: sunDist,
+    draw: () => drawSun(ctx, cam, universe.sun, config.camera.nearPlane),
+  });
+
+  // Add planets
+  for (const p of universe.planets) {
+    const planetDist = Vec3.sub(p.position, cam.C).len();
+    const tAtmo = planet && p === planet ? info.tAtmo : 0;
+    drawables.push({
+      type: 'planet',
+      distance: planetDist,
+      planet: p,
+      tAtmo: tAtmo,
+      draw: () => drawPlanetDisk(ctx, cam, p, tAtmo, universe.sun, config.camera.nearPlane, config),
+    });
+  }
+
+  // Add surface objects for nearest planet (only if we have it)
   if (planet && info) {
-    drawPlanetDisk(ctx, cam, planet, info.tAtmo, universe.sun, config.camera.nearPlane, config);
-
-    // Draw surface structures (towers, pylons)
     const objects = universe.surfaceObjects.get(planet);
     if (objects) {
-      drawSurfaceObjects(ctx, cam, planet, objects, info.altitude, config.camera.nearPlane, config);
+      // Use a slightly reduced distance to ensure objects render after their parent planet
+      // but still in proper order relative to other planets
+      const objectDist = Vec3.sub(planet.position, cam.C).len() - planet.radius * 0.5;
+      drawables.push({
+        type: 'objects',
+        distance: objectDist,
+        draw: () => drawSurfaceObjects(ctx, cam, planet, objects, info.altitude, config.camera.nearPlane, config),
+      });
     }
+  }
+
+  // Sort by distance (farthest first, so nearest renders on top)
+  drawables.sort((a, b) => b.distance - a.distance);
+
+  // Draw in sorted order
+  for (const drawable of drawables) {
+    drawable.draw();
   }
 
   const altitude = info?.altitude ?? 0;
