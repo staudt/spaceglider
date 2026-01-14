@@ -24,7 +24,7 @@ The codebase is organized into modular systems:
 src/
 ├── main.js                 # Entry point: game loop, input handling, orchestration
 ├── core/
-│   ├── config.js          # Centralized tunable parameters
+│   ├── config.js          # Centralized tunable parameters (planets, effects, visuals)
 │   └── math.js            # Vec3, Quat, and utility functions
 ├── simulation/
 │   ├── ship.js            # Ship state, orientation, speed controls
@@ -36,25 +36,29 @@ src/
 │   ├── planet.js          # Planet disk rendering with terminator
 │   ├── sun.js             # Sun rendering
 │   ├── structures.js      # Surface objects (towers, pylons)
+│   ├── effects.js         # Atmospheric effects (rain, snow, sandstorm, lightning, aurora, debris)
 │   ├── hud.js             # Heads-up display
 │   └── debug-hud.js       # Debug overlay (position, geometry, phase)
 └── world/
-    └── universe.js        # Planets, sun setup, nearest planet queries
+    └── universe.js        # Planets, sun setup, nearest planet queries, effects initialization
 ```
 
 ## Core Architecture
 
-### Game Loop (main.js:66-132)
+### Game Loop (main.js:72-228)
 
 The main game loop runs at 60 FPS via `requestAnimationFrame`:
 1. Compute time delta with clamp to prevent large jumps
 2. Update ship orientation (mouse look, roll)
-3. Update ship velocity (thrust, turbo, brake, atmospheric drag)
-4. Apply glide cushion on approach to planet surface
-5. Render frame with correct sky color, stars, sun, planet, HUD
-6. Apply turbo screen shake if applicable
+3. Update ship velocity (thrust, turbo, brake)
+4. Apply multi-body gravity (all planets + sun)
+5. Apply glide cushion on approach to planet surface
+6. Update atmospheric effects for nearest planet
+7. Render frame using depth-sorted drawables (sun, planets, surface objects, effects)
+8. Draw HUD overlay
+9. Apply turbo screen shake if applicable
 
-**Key insight**: The game loop orchestrates all systems. Rendering and simulation are decoupled—ship state updates first, then rendering reads that state.
+**Key insight**: The game loop orchestrates all systems. Rendering and simulation are decoupled—ship state updates first, then rendering reads that state. Drawables are sorted by distance (farthest first) for correct back-to-front rendering.
 
 ### Coordinate Systems
 
@@ -80,29 +84,42 @@ Ship orientation uses quaternions. All rotations are applied in ship-local axes:
 
 ### Rendering Pipeline
 
-Rendering order matters for visual correctness:
+Rendering uses depth-sorted drawables for correct visual ordering:
 1. Fill sky with blended color (space blue → planet sky)
 2. Draw star layers with fade-out based on atmosphere approach
-3. Draw sun
-4. Draw planet disk (with terminator, rim lighting)
-5. Draw surface structures (towers) when visible
-6. Draw HUD overlay
-7. Apply turbo shake if active
+3. Apply atmospheric haze overlay when inside atmosphere
+4. Collect all drawables (sun, planets, surface objects, effects) with camera distances
+5. Sort drawables by distance (farthest first for back-to-front rendering)
+6. Draw each drawable in sorted order
+7. Draw HUD overlay
+8. Apply turbo shake if active
 
 **Projection**: Uses pinhole camera model in `camera.js:projectPoint()`. All 3D points are transformed to ship-local space, then projected to 2D screen.
+
+### Atmospheric Effects System (effects.js)
+
+Per-planet atmospheric effects with particle systems and overlays:
+- **Debris**: Floating particles that wrap around camera position
+- **Rain**: Falling streak particles with configurable intensity
+- **Snow**: Drifting particles with sparkle animation
+- **Sandstorm**: Horizontal streaks with visibility overlay
+- **Lightning**: Flash overlay with bright/dark phases
+- **Aurora**: Animated wavy bands in upper atmosphere
+
+Effects are configured per-planet in `config.planets[].effects` and initialized in `universe.js`. Each planet can have multiple simultaneous effects.
 
 ### Configuration (config.js)
 
 All tunable parameters live here:
 - `time`: Simulation timescale, delta-time clamp
 - `camera`: FOV, near plane distance
-- `ship`: Speed limits, control responsiveness, visual effects
+- `ship`: Speed limits, control responsiveness, visual effects, start position
 - `controls`: Mouse sensitivity, roll rate, wheel thrust step
-- `visuals`: Space background color
-- `sun`: Position, size, color
+- `visuals`: Space background color, atmosphere blend curves
+- `sun`: Position, size, color, GM (gravitational parameter)
 - `stars`: Layer counts, parallax factors, size ranges
 - `structures`: Surface object counts, visibility altitude, colors
-- `defaultPlanet`: Radius, atmosphere, gravity, drag, colors
+- `planets`: Array of planet configurations with individual colors, physics, and effects
 
 Modifying config values is the primary way to tweak behavior.
 
@@ -121,6 +138,7 @@ Modifying config values is the primary way to tweak behavior.
 ### Planet (world/universe.js)
 ```javascript
 {
+  name: string,
   position: Vec3,
   radius: number,
   atmosphereRadius: number,
@@ -130,7 +148,28 @@ Modifying config values is the primary way to tweak behavior.
 }
 ```
 
-### Nearest Planet Info (world/universe.js:49-73)
+### Planet Config (config.js:planets[])
+```javascript
+{
+  name: string,
+  position: [x, y, z],
+  radius: number,
+  atmosphereRadius: number,
+  GM: number,
+  colors: { surface, surfaceDark, sky, halo },
+  physics: { dragStrength },
+  effects: {           // Optional atmospheric effects
+    rain: { intensity, color, streakLength },
+    snow: { count, color, sparkleRate },
+    sandstorm: { intensity, color, windSpeed, windAngle },
+    lightning: { frequency, flashDuration, intensity },
+    aurora: { colors, waveSpeed, bandCount },
+    debris: { count, color, speed },
+  },
+}
+```
+
+### Nearest Planet Info (world/universe.js:63-87)
 ```javascript
 {
   planet: Planet,
@@ -146,24 +185,38 @@ Modifying config values is the primary way to tweak behavior.
 ### Tuning Physics or Visuals
 
 Edit `src/core/config.js` and reload the browser. Changes are immediate. Examples:
-- Adjust gravity: Modify `defaultPlanet.GM`
-- Change drag strength: Modify `defaultPlanet.physics.dragStrength`
-- Adjust planet colors: Modify `defaultPlanet.colors`
+- Adjust gravity: Modify `planets[n].GM` for specific planet or `sun.GM`
+- Change drag strength: Modify `planets[n].physics.dragStrength`
+- Adjust planet colors: Modify `planets[n].colors`
+- Add/modify effects: Modify `planets[n].effects`
 - Change ship speed limits: Modify `ship.cruiseSpeed`, `ship.turboSpeed`
 - Adjust control sensitivity: Modify `controls.mouseSensitivity`
+- Tune atmosphere transitions: Modify `visuals.atmoSkyBlendCurve`, `visuals.atmoStarFadeCurve`
 
 ### Adding a New Planet
 
-Edit `src/world/universe.js:35-37`:
+Add a new entry to `config.planets` array in `src/core/config.js`:
 ```javascript
-const planets = [
-  createPlanet({ position: new Vec3(0, 0, 20000) }, config.defaultPlanet),
-  createPlanet({ position: new Vec3(30000, 5000, 0), colors: { ... } }, config.defaultPlanet),
-  // Add more here
-];
+{
+  name: "NewPlanet",
+  position: [x, y, z],
+  radius: 3000,
+  atmosphereRadius: 4000,
+  GM: 4.5e8,
+  colors: {
+    surface: "#aabbcc",
+    surfaceDark: "#334455",
+    sky: "#112233",
+    halo: "#556677",
+  },
+  physics: { dragStrength: 0.2 },
+  effects: {  // Optional
+    snow: { count: 200, color: "#ffffff", sparkleRate: 0.1 },
+  },
+}
 ```
 
-The `nearestPlanetInfo()` function automatically selects gravity/rendering based on closest planet.
+The `nearestPlanetInfo()` function automatically selects gravity/rendering based on closest planet. Effects are initialized automatically by `createUniverse()`.
 
 ### Adding a Rendering Feature
 
@@ -190,13 +243,16 @@ Add `console.log()` calls in `main.js` game loop to inspect:
 ## Current Capabilities
 
 - 6DOF spaceship controls (mouse look, Q/E roll, 0-9 thrust presets, W turbo, S brake, wheel thrust adjust)
-- Single/multiple planets with gravity, atmosphere drag, surface glide cushion
+- Multiple planets (5 unique) with individual gravity, atmosphere drag, surface glide cushion
+- Multi-body gravity from all planets and sun
 - Parallax star layers with depth-based fade
-- Sun with directional lighting
+- Sun with directional lighting and gravity
 - Planet terminator line and rim lighting
 - Flat-shaded planet disk with atmosphere gradient
+- Per-planet atmospheric effects (rain, snow, sandstorm, lightning, aurora, debris)
+- Depth-sorted rendering for correct multi-planet visibility
 - Surface objects (towers/pylons) with visibility culling
-- Basic HUD showing altitude, speed, control hints
+- Basic HUD showing altitude, speed, planet name, control hints
 - Turbo screen shake during acceleration
 
 ## Development Roadmap

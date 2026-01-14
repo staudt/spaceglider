@@ -2,15 +2,23 @@ import { Vec3, randRange } from "../core/math.js";
 import { projectPoint } from "./camera.js";
 
 export function createStarLayers(config) {
+  // Center stars around ship's starting position to avoid "explosion" on first frames
+  const startPos = config.ship.startPosition;
   const layers = [];
   for (const L of config.stars.layers) {
+    // Effective center accounts for parallax (same as rendering)
+    const effCenter = {
+      x: startPos[0] * L.parallax,
+      y: startPos[1] * L.parallax,
+      z: startPos[2] * L.parallax,
+    };
     const stars = [];
     for (let i = 0; i < L.count; i++) {
       stars.push({
         p: new Vec3(
-          randRange(-L.halfSize, L.halfSize),
-          randRange(-L.halfSize, L.halfSize),
-          randRange(-L.halfSize, L.halfSize)
+          effCenter.x + randRange(-L.halfSize, L.halfSize),
+          effCenter.y + randRange(-L.halfSize, L.halfSize),
+          effCenter.z + randRange(-L.halfSize, L.halfSize)
         ),
         s: randRange(L.sizeMin, L.sizeMax),
       });

@@ -134,7 +134,7 @@ export function drawHud(ctx, canvas, ship, altitude, speed, pointerLocked, keys,
   if (!pointerLocked) {
     ctx.fillStyle = "rgba(255,255,255,0.5)";
     ctx.font = "11px monospace";
-    ctx.fillText("Click to lock mouse", 14, 24);
+    ctx.fillText("Click to lock mouse. Mouse look. Q/E roll. Wheel thrust. 0..9 presets. W turbo. S brake.", 14, 24);
   }
 
   ctx.restore();

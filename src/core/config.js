@@ -10,10 +10,11 @@ export const config = {
   },
 
   ship: {
-    startPosition: [0, 0, -200000],  // starting position in world space
-    cruiseSpeed: 800,      // speed at 100% throttle
-    turboSpeed: 10000,      // speed when holding W
+    startPosition: [0, 0, -400000],  // starting position in world space
+    cruiseSpeed: 1200,      // speed at 100% throttle
+    turboSpeed: 25000,      // speed when holding W
     speedResponse: 1.0,    // ~3 seconds to reach target (higher = faster)
+    brakeResponse: 5.0,    // ~1 second to brake (higher = faster)
     cushionHeight: 10,
     initialThrust: 0.2,
     turboShake: 10,         // screen shake intensity during turbo
@@ -36,7 +37,7 @@ export const config = {
 
   sun: {
     color: "#f0d858",
-    size: 12000,
+    size: 30000,
     position: [0, 0, 0],  // Center of the solar system
     GM: 1e8,              // Weak gravity - planets dominate near them
   },
@@ -62,27 +63,26 @@ export const config = {
   planets: [
     {
       name: "Verdis",
-      position: [50000, 0, 0],
-      radius: 6000,
-      atmosphereRadius: 8000,
+      position: [150000, -22000, 50000],
+      radius: 16000,
+      atmosphereRadius: 22000,
       GM: 4.6e8,
       colors: {
         surface: "#1ea33a",
         surfaceDark: "#0b3813",
-        sky: "#3a1f55",
+        sky: "#45791b",
         halo: "#8f5bc7",
       },
-      physics: { dragStrength: 0.18 },
+      physics: { dragStrength: 0.58 },
       effects: {
-        rain: { intensity: 0.7, color: "#311f68", streakLength: 45 },
-        lightning: { frequency: 0.025, flashDuration: 0.12, intensity: 0.7 },
+        rain: { intensity: 0.9, color: "#ffffff", streakLength: 45 },
       },
     },
     {
       name: "Inferno",
-      position: [-35355, 0, 35355],
-      radius: 1000,
-      atmosphereRadius: 1500,
+      position: [-106065, 0, 106065],
+      radius: 2000,
+      atmosphereRadius: 3000,
       GM: 4.2e8,
       colors: {
         surface: "#c44a1a",
@@ -94,13 +94,14 @@ export const config = {
       effects: {
         sandstorm: { intensity: 0.7, color: "#812e05", windSpeed: 250, windAngle: 0.5 },
         debris: { count: 120, color: "#500000", speed: [60, 180] },
+        lightning: { frequency: 0.025, flashDuration: 0.15, intensity: 0.7 },
       },
     },
     {
       name: "Glaciem",
-      position: [22000, 5000, -50000],
-      radius: 3000,
-      atmosphereRadius: 4000,
+      position: [66000, 15000, -150000],
+      radius: 24000,
+      atmosphereRadius: 27000,
       GM: 5.8e8,
       colors: {
         surface: "#4a9ebb",
@@ -116,9 +117,9 @@ export const config = {
     },
     {
       name: "Magma",
-      position: [65355, 0, 65355],
-      radius: 4000,
-      atmosphereRadius: 8000,
+      position: [15065, -8800, -16065],
+      radius: 3000,
+      atmosphereRadius: 6000,
       GM: 4.0e8,
       colors: {
         surface: "#b80b0b",
@@ -129,15 +130,14 @@ export const config = {
       physics: { dragStrength: 0.15 },
       effects: {
         debris: { count: 280, color: "#ff0000", speed: [40, 120] },
-        lightning: { frequency: 0.025, flashDuration: 0.15, intensity: 0.7 },
         rain: { intensity: 0.7, color: "#fc2828", streakLength: 35 },
       },
     },
     {
       name: "Solitarius",
-      position: [140000, 2000, 10000],
-      radius: 2000,
-      atmosphereRadius: 2300,
+      position: [420000, 6000, 30000],
+      radius: 4000,
+      atmosphereRadius: 4600,
       GM: 4.0e8,
       colors: {
         surface: "#583072",
