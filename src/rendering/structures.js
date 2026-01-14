@@ -83,9 +83,13 @@ export function drawSurfaceObjects(ctx, cam, planet, objects, altitude, nearPlan
   const distToCenter = planetToCamera.len();
   const planetToCamNorm = Vec3.mul(planetToCamera, 1 / distToCenter);
 
-  // Simple occlusion: only show objects on the camera-facing side of the planet
-  // Use a small threshold to hide objects right at the visible edge
-  const horizonThreshold = 0.05;
+  // Geometric horizon calculation:
+  // From camera at distance d from planet center with radius r,
+  // the horizon is where cos(theta) = r/d
+  // Objects are visible only if their dot product with camera direction > r/d
+  // Add small margin to hide objects right at the visible edge
+  const horizonCos = planet.radius / distToCenter;
+  const horizonThreshold = horizonCos + 0.02;
 
   ctx.save();
 
@@ -99,8 +103,26 @@ export function drawSurfaceObjects(ctx, cam, planet, objects, altitude, nearPlan
     const dotProduct = Vec3.dot(planetToObj, planetToCamNorm);
 
     // Skip objects beyond the visible horizon
-    // Objects near the horizon edge appear to float due to 2D planet disk vs 3D projection mismatch
     if (dotProduct < horizonThreshold) continue;
+
+    // Ray-sphere intersection test to check if line of sight is occluded by planet
+    // This catches edge cases where dot product test passes but object is still behind limb
+    const camToBase = Vec3.sub(baseCenter, cam.C);
+    const distToBase = camToBase.len();
+    const rayDir = Vec3.mul(camToBase, 1 / distToBase);
+
+    // Check if ray from camera toward object intersects planet sphere
+    // Using simplified ray-sphere intersection: find closest point on ray to planet center
+    const camToPlanet = Vec3.sub(planet.position, cam.C);
+    const tClosest = Vec3.dot(camToPlanet, rayDir);
+
+    // Only check occlusion if the closest approach is between camera and object
+    if (tClosest > 0 && tClosest < distToBase) {
+      const closestPoint = Vec3.add(cam.C, Vec3.mul(rayDir, tClosest));
+      const distToPlanetCenter = Vec3.sub(closestPoint, planet.position).len();
+      // If ray passes through planet (closest point is inside radius), object is occluded
+      if (distToPlanetCenter < planet.radius) continue;
+    }
 
     // Get local coordinate system at this point on the sphere
     const localUp = getLocalUp(baseCenter, planet);

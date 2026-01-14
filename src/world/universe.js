@@ -1,5 +1,6 @@
 import { Vec3, clamp } from "../core/math.js";
 import { createSurfaceObjects } from "../rendering/structures.js";
+import { createPlanetEffects } from "../rendering/effects.js";
 
 export function createSun(config) {
   const pos = config.sun.position;
@@ -46,7 +47,17 @@ export function createUniverse(config) {
     surfaceObjects.set(planet, createSurfaceObjects(planet, config));
   }
 
-  return { planets, sun, surfaceObjects };
+  // Generate atmospheric effects for each planet
+  const effects = new Map();
+  for (let i = 0; i < planets.length; i++) {
+    const planet = planets[i];
+    const planetConfig = config.planets[i];
+    if (planetConfig.effects) {
+      effects.set(planet, createPlanetEffects(planet, planetConfig.effects));
+    }
+  }
+
+  return { planets, sun, surfaceObjects, effects };
 }
 
 export function nearestPlanetInfo(shipPos, planets) {

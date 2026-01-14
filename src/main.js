@@ -8,6 +8,7 @@ import { drawSun } from "./rendering/sun.js";
 import { drawHud } from "./rendering/hud.js";
 import { drawDebugHud } from "./rendering/debug-hud.js";
 import { drawSurfaceObjects } from "./rendering/structures.js";
+import { updateEffects, drawEffects } from "./rendering/effects.js";
 import { applyGlideCushion, computeTotalGravity } from "./simulation/physics.js";
 import {
   createShip,
@@ -93,6 +94,14 @@ function step(now) {
   }
 
   const cam = createCamera(ship, canvas, config);
+
+  // Update atmospheric effects for nearest planet
+  if (planet && info) {
+    const effects = universe.effects.get(planet);
+    if (effects) {
+      updateEffects(effects, dt, cam, planet, info.tAtmo);
+    }
+  }
   const speed = ship.vel.len();
 
   // Apply easing curves for smoother atmosphere transitions
@@ -100,8 +109,9 @@ function step(now) {
   let starFade = 0;
   if (info) {
     // Eased sky color blend (slower at start, faster near surface)
+    // Near surface (tAtmo=1), blend fully to sky color
     const t = info.tAtmo;
-    skyBlend = Math.pow(t, 1 / config.visuals.atmoSkyBlendCurve) * 0.7;
+    skyBlend = Math.pow(t, 1 / config.visuals.atmoSkyBlendCurve) * 0.95;
     // Eased star fade (more dramatic drop in atmosphere)
     starFade = Math.pow(t * 0.9, config.visuals.atmoStarFadeCurve);
   }
@@ -130,6 +140,17 @@ function step(now) {
 
   drawStars(ctx, canvas, cam, starLayers, starFade, config.camera.nearPlane, speed, config.ship.turboSpeed);
 
+  // Apply atmospheric haze overlay when inside atmosphere (independent of view direction)
+  // This compensates for the planet disk's atmosphere glow that only shows when looking at surface
+  if (info && info.tAtmo > 0.01) {
+    // Use halo color for outer haze, matching planet disk atmosphere rendering
+    const hazeAlpha = info.tAtmo * 0.25;
+    ctx.globalAlpha = hazeAlpha;
+    ctx.fillStyle = planet.colors.halo;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalAlpha = 1.0;
+  }
+
   // Collect drawable objects with camera distance for depth sorting
   const drawables = [];
 
@@ -155,16 +176,29 @@ function step(now) {
   }
 
   // Add surface objects for nearest planet (only if we have it)
+  // Objects are rendered as a batch after all planets for proper occlusion
   if (planet && info) {
     const objects = universe.surfaceObjects.get(planet);
     if (objects) {
-      // Use a slightly reduced distance to ensure objects render after their parent planet
-      // but still in proper order relative to other planets
-      const objectDist = Vec3.sub(planet.position, cam.C).len() - planet.radius * 0.5;
+      // Use the planet's distance as the reference, but subtract a small amount
+      // so objects render after (on top of) the planet disk
+      const planetDist = Vec3.sub(planet.position, cam.C).len();
+      const objectDist = planetDist - 0.1;
       drawables.push({
         type: 'objects',
         distance: objectDist,
         draw: () => drawSurfaceObjects(ctx, cam, planet, objects, info.altitude, config.camera.nearPlane, config),
+      });
+    }
+
+    // Add atmospheric effects (render after surface objects, before HUD)
+    const effects = universe.effects.get(planet);
+    if (effects && info.tAtmo > 0) {
+      const planetDist = Vec3.sub(planet.position, cam.C).len();
+      drawables.push({
+        type: 'effects',
+        distance: planetDist - 0.2,
+        draw: () => drawEffects(ctx, cam, effects, planet, info.tAtmo, config.camera.nearPlane, config),
       });
     }
   }

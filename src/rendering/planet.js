@@ -40,34 +40,52 @@ export function drawPlanetDisk(ctx, cam, planet, tAtmo, sun, nearPlane, config) 
     return;
   }
 
-  ctx.save();
+  // Calculate distance-based atmosphere fade
+  // pr.zCam is the distance from camera to planet center
+  const distanceInRadii = pr.zCam / planet.radius;
+  const visibleDist = config.visuals.atmoVisibleDistance;
+  const fullDist = config.visuals.atmoFullDistance;
 
-  // Atmosphere bounds outer circle
-  ctx.globalAlpha = 0.12 + 0.2 * tAtmo;
-  ctx.fillStyle = planet.colors.halo;
-  ctx.beginPath();
-  ctx.arc(pr.sx, pr.sy, rAtmo, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Atmosphere ring hint
-  ctx.globalAlpha = 0.2 + 0.25 * tAtmo;
-  ctx.strokeStyle = planet.colors.halo;
-  ctx.lineWidth = Math.max(1, rAtmo * 0.01);
-  ctx.beginPath();
-  ctx.arc(pr.sx, pr.sy, rAtmo * 0.995, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Atmospheric glow (brightens when closer to planet)
-  const glowAlpha = tAtmo * config.visuals.atmosphereGlowIntensity;
-  if (glowAlpha > 0.02) {
-    ctx.globalAlpha = glowAlpha;
-    ctx.fillStyle = planet.colors.sky;
-    ctx.beginPath();
-    ctx.arc(pr.sx, pr.sy, rAtmo * 1.05, 0, Math.PI * 2);
-    ctx.fill();
+  // Fade from 0 (at visibleDist) to 1 (at fullDist or closer)
+  let atmoFade = 0;
+  if (distanceInRadii < visibleDist) {
+    atmoFade = 1 - (distanceInRadii - fullDist) / (visibleDist - fullDist);
+    atmoFade = Math.max(0, Math.min(1, atmoFade));
+    // Apply easing for smoother appearance
+    atmoFade = atmoFade * atmoFade * (3 - 2 * atmoFade); // smoothstep
   }
 
-  ctx.restore();
+  // Only render atmosphere effects if visible
+  if (atmoFade > 0.01) {
+    ctx.save();
+
+    // Atmosphere bounds outer circle
+    ctx.globalAlpha = (0.12 + 0.2 * tAtmo) * atmoFade;
+    ctx.fillStyle = planet.colors.halo;
+    ctx.beginPath();
+    ctx.arc(pr.sx, pr.sy, rAtmo, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Atmosphere ring hint
+    ctx.globalAlpha = (0.2 + 0.25 * tAtmo) * atmoFade;
+    ctx.strokeStyle = planet.colors.halo;
+    ctx.lineWidth = Math.max(1, rAtmo * 0.01);
+    ctx.beginPath();
+    ctx.arc(pr.sx, pr.sy, rAtmo * 0.995, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Atmospheric glow (brightens when closer to planet)
+    const glowAlpha = tAtmo * config.visuals.atmosphereGlowIntensity * atmoFade;
+    if (glowAlpha > 0.02) {
+      ctx.globalAlpha = glowAlpha;
+      ctx.fillStyle = planet.colors.sky;
+      ctx.beginPath();
+      ctx.arc(pr.sx, pr.sy, rAtmo * 1.05, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
 
   if (rPlanet < 0.5) return;
 

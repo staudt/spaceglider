@@ -10,12 +10,13 @@ export const config = {
   },
 
   ship: {
-    cruiseSpeed: 1000,      // speed at 100% throttle
-    turboSpeed: 6000,      // speed when holding W
+    startPosition: [0, 0, -200000],  // starting position in world space
+    cruiseSpeed: 800,      // speed at 100% throttle
+    turboSpeed: 10000,      // speed when holding W
     speedResponse: 1.0,    // ~3 seconds to reach target (higher = faster)
     cushionHeight: 10,
     initialThrust: 0.2,
-    turboShake: 4,         // screen shake intensity during turbo
+    turboShake: 10,         // screen shake intensity during turbo
   },
 
   controls: {
@@ -29,6 +30,8 @@ export const config = {
     atmosphereGlowIntensity: 0.15,
     atmoSkyBlendCurve: 1.5,  // > 1 = eased (slower at start), < 1 = snappy
     atmoStarFadeCurve: 2.0,  // controls how quickly stars fade when entering atmosphere
+    atmoVisibleDistance: 8,  // atmosphere becomes visible within this many radii of planet center
+    atmoFullDistance: 1.5,   // atmosphere at full intensity within this many radii
   },
 
   sun: {
@@ -70,6 +73,10 @@ export const config = {
         halo: "#8f5bc7",
       },
       physics: { dragStrength: 0.18 },
+      effects: {
+        rain: { intensity: 0.7, color: "#311f68", streakLength: 45 },
+        lightning: { frequency: 0.025, flashDuration: 0.12, intensity: 0.7 },
+      },
     },
     {
       name: "Inferno",
@@ -84,6 +91,10 @@ export const config = {
         halo: "#ff6b35",
       },
       physics: { dragStrength: 0.12 },
+      effects: {
+        sandstorm: { intensity: 0.7, color: "#812e05", windSpeed: 250, windAngle: 0.5 },
+        debris: { count: 120, color: "#500000", speed: [60, 180] },
+      },
     },
     {
       name: "Glaciem",
@@ -98,20 +109,29 @@ export const config = {
         halo: "#7dd3fc",
       },
       physics: { dragStrength: 0.25 },
+      effects: {
+        snow: { count: 250, color: "#e8f4ff", sparkleRate: 0.15 },
+        aurora: { colors: ["#00ff88", "#00ddff", "#8855ff"], waveSpeed: 0.4, bandCount: 6 },
+      },
     },
     {
       name: "Magma",
       position: [65355, 0, 65355],
       radius: 4000,
-      atmosphereRadius: 5200,
+      atmosphereRadius: 8000,
       GM: 4.0e8,
       colors: {
-        surface: "#b8860b",
-        surfaceDark: "#8b6508",
-        sky: "#1a1206",
-        halo: "#daa520",
+        surface: "#b80b0b",
+        surfaceDark: "#270501",
+        sky: "#611e1e",
+        halo: "#611e1e",
       },
       physics: { dragStrength: 0.15 },
+      effects: {
+        debris: { count: 280, color: "#ff0000", speed: [40, 120] },
+        lightning: { frequency: 0.025, flashDuration: 0.15, intensity: 0.7 },
+        rain: { intensity: 0.7, color: "#fc2828", streakLength: 35 },
+      },
     },
     {
       name: "Solitarius",
@@ -126,6 +146,9 @@ export const config = {
         halo: "#af20da",
       },
       physics: { dragStrength: 0.55 },
+      effects: {
+        aurora: { colors: ["#ff00ff", "#8800ff", "#ff0088"], waveSpeed: 0.6, bandCount: 4 },
+      },
     },
   ],
 
