@@ -67,4 +67,8 @@ export const config = {
       dragStrength: 0.18,
     },
   },
+
+  debug: {
+    enabled: false,  // Toggle with 'D' key
+  },
 };

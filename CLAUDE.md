@@ -36,7 +36,8 @@ src/
 │   ├── planet.js          # Planet disk rendering with terminator
 │   ├── sun.js             # Sun rendering
 │   ├── structures.js      # Surface objects (towers, pylons)
-│   └── hud.js             # Heads-up display
+│   ├── hud.js             # Heads-up display
+│   └── debug-hud.js       # Debug overlay (position, geometry, phase)
 └── world/
     └── universe.js        # Planets, sun setup, nearest planet queries
 ```
@@ -170,7 +171,17 @@ Create a new file in `src/rendering/`, export a `draw*()` function, import in `m
 
 ### Debugging Ship State
 
-Add `console.log()` calls in `main.js:66-132` to inspect:
+**Debug Mode (Press 'D'):**
+- Overlay shows ship position, planet position, distance, altitude
+- Shows sun-planet-camera phase angle (critical for terminator lighting)
+- Displays direction vectors (planet→sun, camera→planet)
+- Shows camera quaternion for orientation debugging
+- Green text on dark background; colored phase indicator (gold = lit side, blue = dark side)
+
+This is essential for diagnosing lighting issues like terminator inversion when small movements cause phase sign flips.
+
+**Console debugging:**
+Add `console.log()` calls in `main.js` game loop to inspect:
 - `ship.pos`, `ship.vel` (position, velocity)
 - `ship.q` (orientation)
 - `info.altitude`, `info.tAtmo` (approach state)

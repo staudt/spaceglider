@@ -6,6 +6,7 @@ import { createStarLayers, drawStars } from "./rendering/stars.js";
 import { drawPlanetDisk } from "./rendering/planet.js";
 import { drawSun } from "./rendering/sun.js";
 import { drawHud } from "./rendering/hud.js";
+import { drawDebugHud } from "./rendering/debug-hud.js";
 import { drawSurfaceObjects } from "./rendering/structures.js";
 import { applyGlideCushion } from "./simulation/physics.js";
 import {
@@ -31,6 +32,10 @@ window.addEventListener("keydown", (e) => {
     if (!Number.isNaN(n)) {
       setThrustPreset(ship, n);
     }
+  }
+  // Toggle debug mode with 'D'
+  if (e.code === "KeyD") {
+    config.debug.enabled = !config.debug.enabled;
   }
 });
 
@@ -134,6 +139,10 @@ function step(now) {
 
   const altitude = info?.altitude ?? 0;
   drawHud(ctx, canvas, ship, altitude, speed, pointerLocked, keys, planet, cam, info);
+
+  if (config.debug.enabled) {
+    drawDebugHud(ctx, canvas, ship, planet, cam, universe, info);
+  }
 
   if (turboShakeActive) {
     ctx.restore();

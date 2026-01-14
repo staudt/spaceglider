@@ -41,29 +41,17 @@ export function drawPlanetDisk(ctx, cam, planet, tAtmo, sun, nearPlane, config) 
 
   if (rPlanet < 0.5) return;
 
-  // Project sun position to screen to get the direction from planet to sun ON SCREEN
-  const sunProj = projectPoint(sun.position, cam, nearPlane);
-
-  let terminatorAngle;
-  if (sunProj) {
-    // Sun is visible - calculate angle from planet center to sun center on screen
-    const dx = sunProj.sx - pr.sx;
-    const dy = sunProj.sy - pr.sy;
-    // The lit side faces toward the sun, terminator is perpendicular to this
-    terminatorAngle = Math.atan2(dy, dx);
-  } else {
-    // Sun is behind camera - use the planet-to-sun direction projected onto screen plane
-    const planetToSun = Vec3.sub(sun.position, planet.position).norm();
-    const sunInCam = {
-      x: Vec3.dot(planetToSun, cam.R),
-      y: Vec3.dot(planetToSun, cam.U),
-    };
-    terminatorAngle = Math.atan2(-sunInCam.y, sunInCam.x);
-  }
-
-  // Calculate the phase angle to determine how much lit vs dark side we see
+  // Calculate sun and camera directions from planet center
   const planetToSun = Vec3.sub(sun.position, planet.position).norm();
   const cameraToPlanet = Vec3.sub(planet.position, cam.C).norm();
+
+  // Calculate terminator angle from sun-to-planet direction projected onto screen.
+  // We project the sun's direction (from planet's perspective) onto the camera's screen plane (R,U axes).
+  // This unified approach handles both visible sun and sun-behind-camera cases consistently.
+  // Avoids discontinuities that occur when switching between two different projection methods.
+  const sunScreenX = Vec3.dot(planetToSun, cam.R);
+  const sunScreenY = Vec3.dot(planetToSun, cam.U);
+  const terminatorAngle = Math.atan2(sunScreenY, sunScreenX);
 
   // phase: how much of the lit hemisphere faces the camera
   // +1 = camera on same side as sun (full lit), -1 = camera opposite sun (full dark)
