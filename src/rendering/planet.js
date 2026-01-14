@@ -1,7 +1,7 @@
 import { Vec3 } from "../core/math.js";
 import { projectPoint, mulRgb } from "./camera.js";
 
-export function drawPlanetDisk(ctx, cam, planet, tAtmo, sun, nearPlane) {
+export function drawPlanetDisk(ctx, cam, planet, tAtmo, sun, nearPlane, config) {
   const pr = projectPoint(planet.position, cam, nearPlane);
   if (!pr) return;
 
@@ -26,6 +26,16 @@ export function drawPlanetDisk(ctx, cam, planet, tAtmo, sun, nearPlane) {
   ctx.beginPath();
   ctx.arc(pr.sx, pr.sy, rAtmo * 0.995, 0, Math.PI * 2);
   ctx.stroke();
+
+  // Atmospheric glow (brightens when closer to planet)
+  const glowAlpha = tAtmo * config.visuals.atmosphereGlowIntensity;
+  if (glowAlpha > 0.02) {
+    ctx.globalAlpha = glowAlpha;
+    ctx.fillStyle = planet.colors.sky;
+    ctx.beginPath();
+    ctx.arc(pr.sx, pr.sy, rAtmo * 1.05, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   ctx.restore();
 
@@ -53,11 +63,11 @@ export function drawPlanetDisk(ctx, cam, planet, tAtmo, sun, nearPlane) {
 
   // Calculate the phase angle to determine how much lit vs dark side we see
   const planetToSun = Vec3.sub(sun.position, planet.position).norm();
-  const planetToCamera = Vec3.sub(cam.C, planet.position).norm();
+  const cameraToPlanet = Vec3.sub(planet.position, cam.C).norm();
 
   // phase: how much of the lit hemisphere faces the camera
   // +1 = camera on same side as sun (full lit), -1 = camera opposite sun (full dark)
-  const phase = Vec3.dot(planetToSun, planetToCamera);
+  const phase = Vec3.dot(planetToSun, cameraToPlanet);
 
   ctx.save();
 

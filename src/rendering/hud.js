@@ -1,4 +1,6 @@
-export function drawHud(ctx, canvas, ship, altitude, speed, pointerLocked, keys) {
+import { Vec3 } from "../core/math.js";
+
+export function drawHud(ctx, canvas, ship, altitude, speed, pointerLocked, keys, planet, cam, info) {
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.scale(devicePixelRatio, devicePixelRatio);
@@ -9,6 +11,61 @@ export function drawHud(ctx, canvas, ship, altitude, speed, pointerLocked, keys)
   const isTurbo = keys.has("KeyW");
   const isBrake = keys.has("KeyS");
   const thrustPct = Math.round(ship.thrustSet * 100);
+
+  // Horizon line and heading indicator (when near planet)
+  if (planet && info && info.tAtmo > 0.05) {
+    const cx = w / 2;
+    const cy = h / 2;
+
+    // Calculate planet "up" direction in camera space
+    const planetToShip = Vec3.sub(cam.C, planet.position).norm();
+    const planetUp = planetToShip;
+
+    // Project planet up direction to screen
+    const upScreenX = Vec3.dot(planetUp, cam.R);
+    const upScreenY = Vec3.dot(planetUp, cam.U);
+
+    // Horizon line (perpendicular to planet's up)
+    const horizonAngle = Math.atan2(upScreenY, upScreenX);
+    const horizonLen = w * 0.3;
+    const horizonX1 = cx - Math.cos(horizonAngle) * horizonLen;
+    const horizonY1 = cy - Math.sin(horizonAngle) * horizonLen;
+    const horizonX2 = cx + Math.cos(horizonAngle) * horizonLen;
+    const horizonY2 = cy + Math.sin(horizonAngle) * horizonLen;
+
+    ctx.strokeStyle = "rgba(255,255,255,0.2)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(horizonX1, horizonY1);
+    ctx.lineTo(horizonX2, horizonY2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Heading indicator (small compass rose at top center)
+    const compassX = cx;
+    const compassY = 25;
+    const compassSize = 12;
+
+    // Draw cardinal direction (planet up = North)
+    ctx.strokeStyle = "rgba(255,100,100,0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(compassX - Math.sin(horizonAngle) * compassSize, compassY - Math.cos(horizonAngle) * compassSize);
+    ctx.lineTo(compassX, compassY);
+    ctx.stroke();
+
+    // Draw cardinal cross
+    ctx.strokeStyle = "rgba(255,255,255,0.3)";
+    ctx.lineWidth = 1;
+    const crossSize = 8;
+    ctx.beginPath();
+    ctx.moveTo(compassX - crossSize, compassY);
+    ctx.lineTo(compassX + crossSize, compassY);
+    ctx.moveTo(compassX, compassY - crossSize);
+    ctx.lineTo(compassX, compassY + crossSize);
+    ctx.stroke();
+  }
 
   // Left panel - Speed and Altitude
   ctx.fillStyle = "rgba(0,0,0,0.3)";

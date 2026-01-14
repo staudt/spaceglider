@@ -26,6 +26,9 @@ export const config = {
 
   visuals: {
     spaceBg: "#070611",
+    atmosphereGlowIntensity: 0.15,
+    atmoSkyBlendCurve: 1.5,  // > 1 = eased (slower at start), < 1 = snappy
+    atmoStarFadeCurve: 2.0,  // controls how quickly stars fade when entering atmosphere
   },
 
   sun: {
@@ -36,9 +39,11 @@ export const config = {
 
   stars: {
     layers: [
+      { count: 600, halfSize: 15000, parallax: 0.1, sizeMin: 0.8, sizeMax: 1.5 },
       { count: 700, halfSize: 12000, parallax: 0.25, sizeMin: 1, sizeMax: 2 },
       { count: 500, halfSize: 10000, parallax: 0.55, sizeMin: 1, sizeMax: 2 },
       { count: 300, halfSize: 8000, parallax: 0.9, sizeMin: 1, sizeMax: 3 },
+      { count: 200, halfSize: 5000, parallax: 1.0, sizeMin: 1.5, sizeMax: 3 },
     ],
   },
 

@@ -86,9 +86,20 @@ function step(now) {
   const cam = createCamera(ship, canvas, config);
   const speed = ship.vel.len();
 
-  const starFade = info ? clamp(info.tAtmo * 0.9, 0, 1) : 0;
+  // Apply easing curves for smoother atmosphere transitions
+  let skyBlend = 0;
+  let starFade = 0;
+  if (info) {
+    // Eased sky color blend (slower at start, faster near surface)
+    const t = info.tAtmo;
+    skyBlend = Math.pow(t, 1 / config.visuals.atmoSkyBlendCurve) * 0.7;
+    // Eased star fade (more dramatic drop in atmosphere)
+    starFade = Math.pow(t * 0.9, config.visuals.atmoStarFadeCurve);
+  }
+  starFade = clamp(starFade, 0, 1);
+
   const skyColor = info
-    ? mixRgb(config.visuals.spaceBg, planet.colors.sky, info.tAtmo * 0.7)
+    ? mixRgb(config.visuals.spaceBg, planet.colors.sky, skyBlend)
     : config.visuals.spaceBg;
 
   // Apply turbo screen shake (only while accelerating, stops at 90% speed)
@@ -112,7 +123,7 @@ function step(now) {
   drawSun(ctx, cam, universe.sun, config.camera.nearPlane);
 
   if (planet && info) {
-    drawPlanetDisk(ctx, cam, planet, info.tAtmo, universe.sun, config.camera.nearPlane);
+    drawPlanetDisk(ctx, cam, planet, info.tAtmo, universe.sun, config.camera.nearPlane, config);
 
     // Draw surface structures (towers, pylons)
     const objects = universe.surfaceObjects.get(planet);
@@ -122,7 +133,7 @@ function step(now) {
   }
 
   const altitude = info?.altitude ?? 0;
-  drawHud(ctx, canvas, ship, altitude, speed, pointerLocked, keys);
+  drawHud(ctx, canvas, ship, altitude, speed, pointerLocked, keys, planet, cam, info);
 
   if (turboShakeActive) {
     ctx.restore();
