@@ -14,7 +14,7 @@ export const config = {
     cruiseSpeed: 1200,      // speed at 100% throttle
     turboSpeed: 25000,      // speed when holding W
     speedResponse: 1.0,    // ~3 seconds to reach target (higher = faster)
-    brakeResponse: 5.0,    // ~1 second to brake (higher = faster)
+    brakeResponse: 1.5,    // ~2 seconds to brake (higher = faster)
     cushionHeight: 10,
     initialThrust: 0.2,
     turboShake: 10,         // screen shake intensity during turbo
@@ -22,7 +22,9 @@ export const config = {
 
   controls: {
     mouseSensitivity: 0.0028,
+    rotationSmoothing: 0.92, // 0.0 = instant, 1.0 = no movement
     rollRate: 1.2,
+    rollSmoothing: 5.0, // Lerp speed (higher = faster snap)
     thrustWheelStep: 0.03,
   },
 

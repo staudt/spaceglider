@@ -8,32 +8,66 @@ export function createShip(config) {
     vel: new Vec3(0, 0, initialSpeed),
     q: new Quat(0, 0, 0, 1),
     thrustSet: config.ship.initialThrust,
+    // Smoothing state
+    rollCurrent: 0,
+    lookVelocity: { x: 0, y: 0 },
   };
 }
 
 export function updateShipOrientation(ship, keys, dt, config) {
+  // Smooth roll
   const rollInput = (keys.has("KeyE") ? 1 : 0) - (keys.has("KeyQ") ? 1 : 0);
-  if (rollInput !== 0) {
+
+  // Lerp current roll speed towards target input
+  const k = 1 - Math.exp(-dt * config.controls.rollSmoothing);
+  ship.rollCurrent = lerp(ship.rollCurrent, rollInput, k);
+
+  if (Math.abs(ship.rollCurrent) > 0.001) {
     const forwardAxis = ship.q.rotateVec(new Vec3(0, 0, 1)).norm();
     const qRoll = Quat.fromAxisAngle(
       forwardAxis,
-      rollInput * config.controls.rollRate * dt
+      ship.rollCurrent * config.controls.rollRate * dt
     );
     ship.q = Quat.mul(qRoll, ship.q).norm();
+  }
+
+  // Apply smoothed mouse look velocity
+  const lookSpeed = Math.sqrt(ship.lookVelocity.x ** 2 + ship.lookVelocity.y ** 2);
+  if (lookSpeed > 0.0001) {
+    const upAxis = ship.q.rotateVec(new Vec3(0, 1, 0)).norm();
+    const rightAxis = ship.q.rotateVec(new Vec3(1, 0, 0)).norm();
+
+    const dx = ship.lookVelocity.x;
+    const dy = ship.lookVelocity.y;
+
+    const qYaw = Quat.fromAxisAngle(upAxis, dx * config.controls.mouseSensitivity);
+    const qPitch = Quat.fromAxisAngle(
+      rightAxis,
+      -dy * config.controls.mouseSensitivity
+    );
+
+    ship.q = Quat.mul(qPitch, Quat.mul(qYaw, ship.q)).norm();
+
+    // Dampen look velocity
+    ship.lookVelocity.x *= config.controls.rotationSmoothing;
+    ship.lookVelocity.y *= config.controls.rotationSmoothing;
+
+    // Hard stop if very small to prevent drift
+    if (lookSpeed < 0.01) {
+      ship.lookVelocity.x = 0;
+      ship.lookVelocity.y = 0;
+    }
   }
 }
 
 export function handleMouseLook(ship, dx, dy, config) {
-  const upAxis = ship.q.rotateVec(new Vec3(0, 1, 0)).norm();
-  const rightAxis = ship.q.rotateVec(new Vec3(1, 0, 0)).norm();
-
-  const qYaw = Quat.fromAxisAngle(upAxis, dx * config.controls.mouseSensitivity);
-  const qPitch = Quat.fromAxisAngle(
-    rightAxis,
-    -dy * config.controls.mouseSensitivity
-  );
-
-  ship.q = Quat.mul(qPitch, Quat.mul(qYaw, ship.q)).norm();
+  // Add input to velocity instead of applying directly
+  // We don't multiply by dt here because dx/dy are pixels moved since last event,
+  // effectively an impulse.
+  // Scale input by (1 - smoothing) so the integral over time equals the original displacement
+  const scale = 1.0 - config.controls.rotationSmoothing;
+  ship.lookVelocity.x += dx * scale;
+  ship.lookVelocity.y += dy * scale;
 }
 
 export function updateShipSpeed(ship, keys, dt, config) {
@@ -52,8 +86,10 @@ export function updateShipSpeed(ship, keys, dt, config) {
   // Get current speed along forward direction
   const currentForwardSpeed = Vec3.dot(ship.vel, forward);
 
-  // Smoothly interpolate toward target speed (~3 seconds to reach)
-  const k = 1 - Math.exp(-dt * config.ship.speedResponse);
+  // Smoothly interpolate toward target speed
+  // Use brakeResponse if braking (target is 0), otherwise use speedResponse
+  const response = targetSpeed === 0 ? config.ship.brakeResponse : config.ship.speedResponse;
+  const k = 1 - Math.exp(-dt * response);
   const newForwardSpeed = lerp(currentForwardSpeed, targetSpeed, k);
 
   // Decompose velocity into forward and lateral components
