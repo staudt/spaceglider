@@ -3,7 +3,7 @@ import { config } from "./core/config.js";
 import { canvas, ctx } from "./rendering/canvas.js";
 import { createCamera, mixRgb } from "./rendering/camera.js";
 import { createStarLayers, drawStars } from "./rendering/stars.js";
-import { drawPlanetDisk } from "./rendering/planet.js";
+import { drawPlanetDisk, drawPlanetSurface } from "./rendering/planet.js";
 import { drawSun } from "./rendering/sun.js";
 import { drawHud } from "./rendering/hud.js";
 import { drawDebugHud } from "./rendering/debug-hud.js";
@@ -47,7 +47,7 @@ let pointerLocked = false;
 canvas.addEventListener("click", async () => {
   try {
     await canvas.requestPointerLock();
-  } catch {}
+  } catch { }
 });
 
 document.addEventListener("pointerlockchange", () => {
@@ -166,6 +166,7 @@ function step(now) {
   for (const p of universe.planets) {
     const planetDist = Vec3.sub(p.position, cam.C).len();
     const tAtmo = planet && p === planet ? info.tAtmo : 0;
+    // Draw planet disk
     drawables.push({
       type: 'planet',
       distance: planetDist,
@@ -173,6 +174,16 @@ function step(now) {
       tAtmo: tAtmo,
       draw: () => drawPlanetDisk(ctx, cam, p, tAtmo, universe.sun, config.camera.nearPlane, config),
     });
+
+    // Draw checkerboard overlay (if active)
+    // Render slightly closer than planet (-0.05) to ensure it draws on top of disk
+    if (tAtmo > 0) {
+      drawables.push({
+        type: 'planet_surface',
+        distance: planetDist - 0.05,
+        draw: () => drawPlanetSurface(ctx, cam, p, tAtmo, universe.sun, config, config.camera.nearPlane),
+      });
+    }
   }
 
   // Add surface objects for nearest planet (only if we have it)

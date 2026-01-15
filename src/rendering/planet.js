@@ -168,3 +168,161 @@ export function drawPlanetDisk(ctx, cam, planet, tAtmo, sun, nearPlane, config) 
 
   ctx.restore();
 }
+
+// 3D checkerboard overlay for simpler motion perception
+export function drawPlanetSurface(ctx, cam, planet, tAtmo, sun, config, nearPlane) {
+  if (tAtmo <= 0.01) return;
+
+  const segments = config.visuals.checkerGrid?.segments || 32;
+  const alpha = config.visuals.checkerGrid?.alpha || 0.1;
+
+  // Optimization: Only render if we are close enough
+  // tAtmo is 0..1, where 1 is at surface
+
+  const camToPlanet = Vec3.sub(planet.position, cam.C);
+  const dist = camToPlanet.len();
+
+  // Calculate sun direction for lighting-based color selection
+  const planetToSun = Vec3.sub(sun.position, planet.position).norm();
+
+  // Project planet center to get screen-space clipping circle
+  const pr = projectPoint(planet.position, cam, nearPlane || 0.1);
+  if (!pr) return;
+
+  const rPlanet = (planet.radius / pr.zCam) * cam.focal;
+
+  // Coordinate frame for the planet
+  // We can use fixed axes since planets don't rotate in this simulation yet
+  // But we want to align poles with Y for standard appearance
+
+  ctx.save();
+  ctx.globalAlpha = alpha * tAtmo; // Fade in with atmosphere
+
+  // Clip to planet disk so tiles don't extend beyond the visible edge
+  ctx.beginPath();
+  ctx.arc(pr.sx, pr.sy, rPlanet, 0, Math.PI * 2);
+  ctx.clip();
+
+  // Render spherical grid
+  // We only render the front-facing quads
+
+  // Precompute sin/cos for optimization
+  // We could cache this but for <100 segments it's cheap enough
+
+  // We can view this as stepping through Latitude (phi) and Longitude (theta)
+  // Phi: -PI/2 to PI/2 (South Pole to North Pole)
+  // Theta: 0 to 2PI (Around equator)
+
+  const radius = planet.radius;
+
+  for (let i = 0; i < segments; i++) { // Latitude
+    const lat1 = -Math.PI / 2 + (Math.PI * i) / segments;
+    const lat2 = -Math.PI / 2 + (Math.PI * (i + 1)) / segments;
+
+    const sinLat1 = Math.sin(lat1);
+    const cosLat1 = Math.cos(lat1);
+    const sinLat2 = Math.sin(lat2);
+    const cosLat2 = Math.cos(lat2);
+
+    for (let j = 0; j < segments * 2; j++) { // Longitude (2x segments for aspect ratio)
+      // Check pattern: skip every other one
+      if ((i + j) % 2 !== 0) continue;
+
+      const lon1 = (Math.PI * 2 * j) / (segments * 2);
+      const lon2 = (Math.PI * 2 * (j + 1)) / (segments * 2);
+
+      const sinLon1 = Math.sin(lon1);
+      const cosLon1 = Math.cos(lon1);
+      const sinLon2 = Math.sin(lon2);
+      const cosLon2 = Math.cos(lon2);
+
+      // Calculate 4 corners of the quad on unit sphere
+      // x = cosLat * cosLon
+      // y = sinLat   (Up axis)
+      // z = cosLat * sinLon
+
+      // We need world space positions
+      // P = PlanetPos + Radius * SpherePoint
+
+      // Compute center for culling
+      const avgLat = (lat1 + lat2) / 2;
+      const avgLon = (lon1 + lon2) / 2;
+      const normal = new Vec3(
+        Math.cos(avgLat) * Math.cos(avgLon),
+        Math.sin(avgLat),
+        Math.cos(avgLat) * Math.sin(avgLon)
+      );
+
+      // Backface culling: check if surface normal faces the camera
+      // For a point on the sphere surface at position P = PlanetCenter + R * normal,
+      // we need to check if the view vector (Camera - P) has positive dot with normal.
+      //
+      // ViewDir = Camera - (PlanetCenter + R * normal)
+      //         = (Camera - PlanetCenter) - R * normal
+      //         = -camToPlanet - R * normal
+      //
+      // dot(normal, ViewDir) = dot(normal, -camToPlanet) - R
+      //                      = -dot(normal, camToPlanet) - R
+      //
+      // Visible when: -dot(normal, camToPlanet) - R > 0
+      //           =>  -dot(normal, camToPlanet) > R
+      //           =>  dot(normal, -camToPlanet) > R
+
+      const dotPlanetToCamera = normal.x * -camToPlanet.x + normal.y * -camToPlanet.y + normal.z * -camToPlanet.z;
+
+      // Cull if the surface point's normal doesn't face the camera
+      // The threshold is the planet radius - this accounts for the surface point offset
+      if (dotPlanetToCamera <= radius) continue;
+
+      // Project the 4 corners
+      // Corner 1
+      const p1 = new Vec3(
+        planet.position.x + radius * cosLat1 * cosLon1,
+        planet.position.y + radius * sinLat1,
+        planet.position.z + radius * cosLat1 * sinLon1
+      );
+
+      // Corner 2
+      const p2 = new Vec3(
+        planet.position.x + radius * cosLat1 * cosLon2,
+        planet.position.y + radius * sinLat1,
+        planet.position.z + radius * cosLat1 * sinLon2
+      );
+
+      // Corner 3
+      const p3 = new Vec3(
+        planet.position.x + radius * cosLat2 * cosLon2,
+        planet.position.y + radius * sinLat2,
+        planet.position.z + radius * cosLat2 * sinLon2
+      );
+
+      // Corner 4
+      const p4 = new Vec3(
+        planet.position.x + radius * cosLat2 * cosLon1,
+        planet.position.y + radius * sinLat2,
+        planet.position.z + radius * cosLat2 * sinLon1
+      );
+
+      // Project to screen
+      const pp1 = projectPoint(p1, cam, 0.1);
+      const pp2 = projectPoint(p2, cam, 0.1);
+      const pp3 = projectPoint(p3, cam, 0.1);
+      const pp4 = projectPoint(p4, cam, 0.1);
+
+      // If any point is behind camera (null), skip quad
+      // (Advanced: should clip, but simple skip is fine for small quads)
+      if (!pp1 || !pp2 || !pp3 || !pp4) continue;
+
+      // Draw Quad
+      ctx.beginPath();
+      ctx.moveTo(pp1.sx, pp1.sy);
+      ctx.lineTo(pp2.sx, pp2.sy);
+      ctx.lineTo(pp3.sx, pp3.sy);
+      ctx.lineTo(pp4.sx, pp4.sy);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  ctx.restore();
+}

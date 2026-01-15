@@ -34,7 +34,12 @@ export const config = {
     atmoSkyBlendCurve: 1.5,  // > 1 = eased (slower at start), < 1 = snappy
     atmoStarFadeCurve: 2.0,  // controls how quickly stars fade when entering atmosphere
     atmoVisibleDistance: 8,  // atmosphere becomes visible within this many radii of planet center
+    atmoVisibleDistance: 8,  // atmosphere becomes visible within this many radii of planet center
     atmoFullDistance: 1.5,   // atmosphere at full intensity within this many radii
+    checkerGrid: {
+      segments: 48,          // number of slices/stacks for the sphere grid
+      alpha: 0.15,           // base opacity of the checkered overlay
+    },
   },
 
   sun: {
@@ -67,8 +72,8 @@ export const config = {
       name: "Verdis",
       position: [150000, -22000, 50000],
       radius: 16000,
-      atmosphereRadius: 22000,
-      GM: 4.6e8,
+      atmosphereRadius: 23000,
+      GM: 7.6e8,
       colors: {
         surface: "#1ea33a",
         surfaceDark: "#0b3813",
@@ -103,7 +108,7 @@ export const config = {
       name: "Glaciem",
       position: [66000, 15000, -150000],
       radius: 24000,
-      atmosphereRadius: 27000,
+      atmosphereRadius: 29000,
       GM: 5.8e8,
       colors: {
         surface: "#4a9ebb",
