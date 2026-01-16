@@ -1,12 +1,16 @@
-// Real Solar System configuration
-// Scale: Neptune at ~2,000,000 units (30 AU), so 1 AU ≈ 66,667 units
-// Planet sizes exaggerated ~100x for visibility (real ratios preserved)
-// Moons positioned relative to their parent planets
+// Real Solar System configuration with orbital mechanics
+// Scale: 1 AU ≈ 400,000 units
+// Orbital periods scaled for gameplay visibility while maintaining realistic ratios
+// Real ratios: Mercury 0.24y, Venus 0.62y, Earth 1y, Mars 1.88y, Jupiter 11.86y, etc.
 
 export const config = {
   time: {
     scale: 1.0,
     dtClamp: 1 / 30,
+    // Orbital time scale: how fast orbits progress (1 = real proportions, higher = faster orbits)
+    // At orbitalTimeScale=0.025, Earth completes one orbit in ~21 minutes
+    // Mercury ~5 min, Jupiter ~4 hours - gentle, relaxed orbital motion
+    orbitalTimeScale: 0.018,
   },
 
   camera: {
@@ -15,14 +19,15 @@ export const config = {
   },
 
   ship: {
-    startPosition: [70000, 5000, -5000],  // Near Earth, good view of inner solar system
-    cruiseSpeed: 5000,       // Comfortable cruising
-    turboSpeed: 150000,      // Fast enough to reach outer planets
+    startPosition: [420000, 30000, -30000],  // Near Earth, good view of inner solar system
+    cruiseSpeed: 6000,      // Comfortable cruising
+    turboSpeed: 350000,      // Fast enough to reach outer planets
     speedResponse: 1.0,
     brakeResponse: 1.5,
     cushionHeight: 10,
     initialThrust: 0.2,
     turboShake: 10,
+    referenceFrameStrength: 3.0, // How strongly ship matches planet's orbital motion (higher = sticks better)
   },
 
   controls: {
@@ -48,7 +53,7 @@ export const config = {
 
   sun: {
     color: "#fff4e0",
-    size: 46000,            // Sun is ~109x Earth diameter, scaled for visibility
+    size: 46000,
     position: [0, 0, 0],
     GM: 5e8,
   },
@@ -69,17 +74,30 @@ export const config = {
     colors: ["#ff6600", "#ffaa00", "#ff4400", "#ff8800"],
   },
 
-  // Real Solar System - distances in AU scaled to game units (1 AU ≈ 66,667)
-  // Planet radii exaggerated for gameplay but preserve relative sizes
+  // Real Solar System with orbital mechanics
+  // Orbital parameters:
+  // - semiMajorAxis: distance from parent (sun or planet) in units
+  // - eccentricity: 0 = circular, closer to 1 = more elliptical
+  // - inclination: orbital tilt in degrees
+  // - orbitalPeriod: time for one orbit in seconds (at orbitalTimeScale=1)
+  // - startAngle: initial position in orbit (radians)
+  // - parent: name of parent body (null for planets orbiting sun)
   planets: [
     // ==================== MERCURY ====================
-    // 0.39 AU from Sun, smallest planet
+    // Real: 0.39 AU, 88 days orbital period
     {
       name: "Mercury",
-      position: [26000, 0, 0],           // 0.39 AU
-      radius: 1600,                       // Smallest planet
-      atmosphereRadius: 1700,             // Virtually no atmosphere
+      radius: 1600,
+      atmosphereRadius: 1700,
       GM: 2.2e8,
+      orbit: {
+        semiMajorAxis: 156000,        // 0.39 AU
+        eccentricity: 0.206,          // Most eccentric planet
+        inclination: 7.0,             // 7° to ecliptic
+        orbitalPeriod: 7.6,           // 88 days / 365 * 31.5s base
+        startAngle: 0,
+        parent: null,
+      },
       colors: {
         surface: "#8c8680",
         surfaceDark: "#4a4642",
@@ -91,33 +109,47 @@ export const config = {
     },
 
     // ==================== VENUS ====================
-    // 0.72 AU from Sun, Earth's "twin"
+    // Real: 0.72 AU, 225 days orbital period
     {
       name: "Venus",
-      position: [0, 2000, 48000],         // 0.72 AU
-      radius: 3950,                        // Similar to Earth
-      atmosphereRadius: 6000,              // Thick atmosphere
+      radius: 3950,
+      atmosphereRadius: 6000,
       GM: 3.2e8,
+      orbit: {
+        semiMajorAxis: 288000,        // 0.72 AU
+        eccentricity: 0.007,          // Nearly circular
+        inclination: 3.4,
+        orbitalPeriod: 19.4,          // 225 days
+        startAngle: Math.PI * 0.7,
+        parent: null,
+      },
       colors: {
         surface: "#e6c87a",
         surfaceDark: "#8b7355",
         sky: "#d4a556",
         halo: "#f0d890",
       },
-      physics: { dragStrength: 0.9 },     // Very thick atmosphere
+      physics: { dragStrength: 0.9 },
       effects: {
         sandstorm: { intensity: 0.8, color: "#c9a227", windSpeed: 100, windAngle: 0.3 },
       },
     },
 
     // ==================== EARTH ====================
-    // 1 AU from Sun, our home
+    // Real: 1 AU, 365 days orbital period
     {
       name: "Earth",
-      position: [66667, 0, 0],            // 1 AU
-      radius: 4000,                        // Reference size
+      radius: 4000,
       atmosphereRadius: 4800,
       GM: 3.5e8,
+      orbit: {
+        semiMajorAxis: 400000,        // 1 AU
+        eccentricity: 0.017,          // Nearly circular
+        inclination: 0,               // Reference plane
+        orbitalPeriod: 31.5,          // 365 days = 31.5s base period
+        startAngle: 0,
+        parent: null,
+      },
       colors: {
         surface: "#4a90b5",
         surfaceDark: "#1a4a6b",
@@ -131,12 +163,20 @@ export const config = {
     },
 
     // The Moon - Earth's companion
+    // Real: 384,400 km from Earth, 27.3 day orbital period
     {
       name: "Moon",
-      position: [66667 + 1500, 400, 0],   // ~1500 units from Earth
-      radius: 1100,                        // About 1/4 Earth's size
+      radius: 1100,
       atmosphereRadius: 1150,
       GM: 1.5e8,
+      orbit: {
+        semiMajorAxis: 9000,          // Scaled moon distance
+        eccentricity: 0.055,
+        inclination: 5.1,             // To Earth's equator
+        orbitalPeriod: 2.36,          // 27.3 days / 365 * 31.5s
+        startAngle: Math.PI * 0.25,
+        parent: "Earth",
+      },
       colors: {
         surface: "#c4c4bc",
         surfaceDark: "#6b6b65",
@@ -148,20 +188,27 @@ export const config = {
     },
 
     // ==================== MARS ====================
-    // 1.52 AU from Sun, the Red Planet
+    // Real: 1.52 AU, 687 days orbital period
     {
       name: "Mars",
-      position: [85000, -3000, 50000],    // 1.52 AU
-      radius: 2100,                        // About half Earth's size
+      radius: 2100,
       atmosphereRadius: 2600,
       GM: 2.8e8,
+      orbit: {
+        semiMajorAxis: 608000,        // 1.52 AU
+        eccentricity: 0.093,
+        inclination: 1.85,
+        orbitalPeriod: 59.3,          // 687 days
+        startAngle: Math.PI * 1.2,
+        parent: null,
+      },
       colors: {
         surface: "#c1440e",
         surfaceDark: "#6b2407",
         sky: "#d4a27a",
         halo: "#e07040",
       },
-      physics: { dragStrength: 0.08 },    // Thin atmosphere
+      physics: { dragStrength: 0.08 },
       effects: {
         sandstorm: { intensity: 0.6, color: "#a03000", windSpeed: 80, windAngle: 0.4 },
         debris: { count: 80, color: "#802000", speed: [30, 90] },
@@ -169,12 +216,20 @@ export const config = {
     },
 
     // Phobos - Mars's larger moon
+    // Real: 9,376 km from Mars, 7.66 hours orbital period
     {
       name: "Phobos",
-      position: [85000 + 600, -3000, 50000 + 200],
       radius: 150,
       atmosphereRadius: 155,
       GM: 0.5e8,
+      orbit: {
+        semiMajorAxis: 3600,
+        eccentricity: 0.015,
+        inclination: 1.1,
+        orbitalPeriod: 0.027,         // 7.66 hours / 24 / 365 * 31.5s
+        startAngle: 0,
+        parent: "Mars",
+      },
       colors: {
         surface: "#6b5b4f",
         surfaceDark: "#3a302a",
@@ -186,18 +241,25 @@ export const config = {
     },
 
     // ==================== JUPITER ====================
-    // 5.2 AU from Sun, the Gas Giant
+    // Real: 5.2 AU, 11.86 years orbital period
     {
       name: "Jupiter",
-      position: [0, 10000, -346667],      // 5.2 AU
-      radius: 45000,                       // 11x Earth's size
+      radius: 45000,
       atmosphereRadius: 60000,
       GM: 8e8,
+      orbit: {
+        semiMajorAxis: 2080000,       // 5.2 AU
+        eccentricity: 0.049,
+        inclination: 1.3,
+        orbitalPeriod: 374,           // 11.86 years
+        startAngle: Math.PI * 0.5,
+        parent: null,
+      },
       colors: {
-        surface: "#d4a574",
-        surfaceDark: "#8b6b4a",
+        surface: "#885e30",
+        surfaceDark: "#351f0a",
         sky: "#c9a06a",
-        halo: "#e8c090",
+        halo: "#3f2c15",
       },
       physics: { dragStrength: 0.5 },
       effects: {
@@ -207,12 +269,21 @@ export const config = {
     },
 
     // Io - Volcanic moon
+    // Real: 421,700 km from Jupiter, 1.77 days orbital period
+    // Scaled: Jupiter radius is 45,000, so orbit must be well outside
     {
       name: "Io",
-      position: [0 + 2800, 10000, -346667 + 1000],
       radius: 1150,
       atmosphereRadius: 1300,
       GM: 1.8e8,
+      orbit: {
+        semiMajorAxis: 70000,         // Well outside Jupiter's radius (45,000)
+        eccentricity: 0.004,
+        inclination: 0.04,
+        orbitalPeriod: 0.153,         // 1.77 days
+        startAngle: 0,
+        parent: "Jupiter",
+      },
       colors: {
         surface: "#e8d058",
         surfaceDark: "#a08830",
@@ -226,12 +297,21 @@ export const config = {
     },
 
     // Europa - Icy moon with possible ocean
+    // Real: 670,900 km from Jupiter, 3.55 days orbital period
+    // Scaled: Jupiter radius is 45,000, so orbit must be well outside
     {
       name: "Europa",
-      position: [0 + 4500, 10000 + 500, -346667],
       radius: 980,
       atmosphereRadius: 1050,
       GM: 1.6e8,
+      orbit: {
+        semiMajorAxis: 90000,         // Well outside Jupiter's radius (45,000)
+        eccentricity: 0.009,
+        inclination: 0.47,
+        orbitalPeriod: 0.307,         // 3.55 days
+        startAngle: Math.PI * 0.5,
+        parent: "Jupiter",
+      },
       colors: {
         surface: "#c9d4dc",
         surfaceDark: "#8090a0",
@@ -245,12 +325,21 @@ export const config = {
     },
 
     // Ganymede - Largest moon in solar system
+    // Real: 1,070,400 km from Jupiter, 7.15 days orbital period
+    // Scaled: Jupiter radius is 45,000, so orbit must be well outside
     {
       name: "Ganymede",
-      position: [0 - 7000, 10000, -346667 - 2000],
       radius: 1660,
       atmosphereRadius: 1750,
       GM: 2.0e8,
+      orbit: {
+        semiMajorAxis: 115000,        // Well outside Jupiter's radius (45,000)
+        eccentricity: 0.001,
+        inclination: 0.2,
+        orbitalPeriod: 0.617,         // 7.15 days
+        startAngle: Math.PI,
+        parent: "Jupiter",
+      },
       colors: {
         surface: "#8b8070",
         surfaceDark: "#504840",
@@ -262,12 +351,20 @@ export const config = {
     },
 
     // Callisto - Heavily cratered
+    // Real: 1,882,700 km from Jupiter, 16.69 days orbital period
     {
       name: "Callisto",
-      position: [0, 10000 - 3000, -346667 + 12000],
       radius: 1520,
       atmosphereRadius: 1580,
       GM: 1.9e8,
+      orbit: {
+        semiMajorAxis: 72000,
+        eccentricity: 0.007,
+        inclination: 0.19,
+        orbitalPeriod: 1.44,          // 16.69 days
+        startAngle: Math.PI * 1.5,
+        parent: "Jupiter",
+      },
       colors: {
         surface: "#605850",
         surfaceDark: "#302820",
@@ -279,13 +376,20 @@ export const config = {
     },
 
     // ==================== SATURN ====================
-    // 9.5 AU from Sun, the Ringed Planet
+    // Real: 9.5 AU, 29.46 years orbital period
     {
       name: "Saturn",
-      position: [-500000, -5000, -350000], // 9.5 AU
-      radius: 38000,                        // 9.5x Earth's size
+      radius: 38000,
       atmosphereRadius: 52000,
       GM: 7e8,
+      orbit: {
+        semiMajorAxis: 3800000,       // 9.5 AU
+        eccentricity: 0.056,
+        inclination: 2.49,
+        orbitalPeriod: 929,           // 29.46 years
+        startAngle: Math.PI * 0.8,
+        parent: null,
+      },
       colors: {
         surface: "#e8d4a8",
         surfaceDark: "#a08860",
@@ -297,29 +401,37 @@ export const config = {
         lightning: { frequency: 0.02, flashDuration: 0.15, intensity: 0.5 },
       },
       rings: {
-        innerRadius: 45000,    // Just outside the planet
-        outerRadius: 85000,    // About 2.2x planet radius
-        particleCount: 12000,  // Dense ring system
-        tilt: 27,              // Saturn's axial tilt in degrees
+        innerRadius: 45000,
+        outerRadius: 85000,
+        particleCount: 12000,
+        tilt: 27,
         colors: [
-          "#d4c4a0",  // Pale tan
-          "#c8b890",  // Darker tan
-          "#e0d0b0",  // Light cream
-          "#b8a880",  // Brown-gray
-          "#ccc0a8",  // Dusty beige
-          "#a89878",  // Dark band
-          "#e8dcc0",  // Bright ice
+          "#d4c4a0",
+          "#c8b890",
+          "#e0d0b0",
+          "#b8a880",
+          "#ccc0a8",
+          "#a89878",
+          "#e8dcc0",
         ],
       },
     },
 
     // Titan - Saturn's largest moon, thick atmosphere
+    // Real: 1,221,870 km from Saturn, 15.95 days orbital period
     {
       name: "Titan",
-      position: [-500000 + 8000, -5000 + 1000, -350000],
       radius: 1630,
-      atmosphereRadius: 2800,              // Very thick atmosphere
+      atmosphereRadius: 2800,
       GM: 2.0e8,
+      orbit: {
+        semiMajorAxis: 48000,
+        eccentricity: 0.029,
+        inclination: 0.33,
+        orbitalPeriod: 1.38,          // 15.95 days
+        startAngle: Math.PI * 0.3,
+        parent: "Saturn",
+      },
       colors: {
         surface: "#c08040",
         surfaceDark: "#604020",
@@ -328,17 +440,26 @@ export const config = {
       },
       physics: { dragStrength: 0.7 },
       effects: {
-        rain: { intensity: 0.4, color: "#c09050", streakLength: 30 }, // Methane rain
+        rain: { intensity: 0.4, color: "#c09050", streakLength: 30 },
       },
     },
 
     // Enceladus - Icy moon with geysers
+    // Real: 238,000 km from Saturn, 1.37 days orbital period
+    // Scaled: Saturn radius is 38,000, so orbit must be well outside
     {
       name: "Enceladus",
-      position: [-500000, -5000 + 3000, -350000 + 4000],
       radius: 320,
       atmosphereRadius: 400,
       GM: 0.8e8,
+      orbit: {
+        semiMajorAxis: 58000,         // Well outside Saturn's radius (38,000)
+        eccentricity: 0.005,
+        inclination: 0.02,
+        orbitalPeriod: 0.118,         // 1.37 days
+        startAngle: Math.PI * 0.7,
+        parent: "Saturn",
+      },
       colors: {
         surface: "#f8f8ff",
         surfaceDark: "#c0c0d0",
@@ -352,13 +473,20 @@ export const config = {
     },
 
     // ==================== URANUS ====================
-    // 19.2 AU from Sun, the Ice Giant
+    // Real: 19.2 AU, 84 years orbital period
     {
       name: "Uranus",
-      position: [1000000, 20000, -800000], // 19.2 AU
-      radius: 16000,                        // 4x Earth's size
+      radius: 16000,
       atmosphereRadius: 22000,
       GM: 5e8,
+      orbit: {
+        semiMajorAxis: 7680000,       // 19.2 AU
+        eccentricity: 0.046,
+        inclination: 0.77,
+        orbitalPeriod: 2649,          // 84 years
+        startAngle: Math.PI * 1.1,
+        parent: null,
+      },
       colors: {
         surface: "#72c4c8",
         surfaceDark: "#3a8080",
@@ -370,25 +498,34 @@ export const config = {
         aurora: { colors: ["#00ffcc", "#00ccff", "#0088ff"], waveSpeed: 0.3, bandCount: 4 },
       },
       rings: {
-        innerRadius: 19000,    // Faint narrow rings
+        innerRadius: 19000,
         outerRadius: 28000,
-        particleCount: 3000,   // Much sparser than Saturn
-        tilt: 98,              // Uranus is tilted on its side!
+        particleCount: 3000,
+        tilt: 98,
         colors: [
-          "#404850",  // Dark gray-blue
-          "#505860",  // Slightly lighter
-          "#383840",  // Very dark
+          "#404850",
+          "#505860",
+          "#383840",
         ],
       },
     },
 
     // Miranda - Uranus's moon with extreme terrain
+    // Real: 129,390 km from Uranus, 1.41 days orbital period
+    // Scaled: Uranus radius is 16,000, so orbit must be well outside
     {
       name: "Miranda",
-      position: [1000000 + 2500, 20000, -800000 + 500],
       radius: 300,
       atmosphereRadius: 310,
       GM: 0.6e8,
+      orbit: {
+        semiMajorAxis: 26000,         // Well outside Uranus's radius (16,000)
+        eccentricity: 0.001,
+        inclination: 4.34,
+        orbitalPeriod: 0.122,         // 1.41 days
+        startAngle: 0,
+        parent: "Uranus",
+      },
       colors: {
         surface: "#909090",
         surfaceDark: "#505050",
@@ -400,13 +537,20 @@ export const config = {
     },
 
     // ==================== NEPTUNE ====================
-    // 30 AU from Sun, the farthest major planet
+    // Real: 30 AU, 164.8 years orbital period
     {
       name: "Neptune",
-      position: [400000, -30000, -2000000], // 30 AU
-      radius: 15500,                         // Slightly smaller than Uranus
+      radius: 15500,
       atmosphereRadius: 21000,
       GM: 4.8e8,
+      orbit: {
+        semiMajorAxis: 12000000,      // 30 AU
+        eccentricity: 0.009,
+        inclination: 1.77,
+        orbitalPeriod: 5199,          // 164.8 years
+        startAngle: Math.PI * 0.3,
+        parent: null,
+      },
       colors: {
         surface: "#3050b0",
         surfaceDark: "#182860",
@@ -421,12 +565,21 @@ export const config = {
     },
 
     // Triton - Neptune's largest moon (retrograde orbit)
+    // Real: 354,800 km from Neptune, 5.88 days orbital period (retrograde)
+    // Scaled: Neptune radius is 15,500, so orbit must be well outside
     {
       name: "Triton",
-      position: [400000 - 2200, -30000 + 800, -2000000 + 1500],
       radius: 860,
       atmosphereRadius: 920,
       GM: 1.5e8,
+      orbit: {
+        semiMajorAxis: 28000,         // Well outside Neptune's radius (15,500)
+        eccentricity: 0.00002,        // Nearly perfectly circular
+        inclination: 157,             // Retrograde orbit (>90°)
+        orbitalPeriod: 0.508,         // 5.88 days
+        startAngle: Math.PI * 0.5,
+        parent: "Neptune",
+      },
       colors: {
         surface: "#d8c8c0",
         surfaceDark: "#806860",
@@ -435,18 +588,25 @@ export const config = {
       },
       physics: { dragStrength: 0.03 },
       effects: {
-        snow: { count: 80, color: "#ffe0e0", sparkleRate: 0.15 }, // Nitrogen snow
+        snow: { count: 80, color: "#ffe0e0", sparkleRate: 0.15 },
       },
     },
 
     // ==================== PLUTO (Dwarf Planet) ====================
-    // 39.5 AU average, but let's put it closer for accessibility
+    // Real: 39.5 AU average, 248 years orbital period
     {
       name: "Pluto",
-      position: [-1800000, 50000, -1500000], // ~35 AU (perihelion-ish)
       radius: 750,
       atmosphereRadius: 850,
       GM: 1.0e8,
+      orbit: {
+        semiMajorAxis: 15800000,      // 39.5 AU
+        eccentricity: 0.249,          // Highly eccentric
+        inclination: 17.16,           // High inclination
+        orbitalPeriod: 7819,          // 248 years
+        startAngle: Math.PI * 1.5,
+        parent: null,
+      },
       colors: {
         surface: "#d4c4a8",
         surfaceDark: "#6a5a48",
@@ -460,12 +620,20 @@ export const config = {
     },
 
     // Charon - Pluto's largest moon
+    // Real: 19,591 km from Pluto, 6.39 days orbital period (tidally locked)
     {
       name: "Charon",
-      position: [-1800000 + 600, 50000, -1500000 + 300],
       radius: 380,
       atmosphereRadius: 390,
       GM: 0.7e8,
+      orbit: {
+        semiMajorAxis: 4000,
+        eccentricity: 0.0002,
+        inclination: 0.08,
+        orbitalPeriod: 0.552,         // 6.39 days
+        startAngle: 0,
+        parent: "Pluto",
+      },
       colors: {
         surface: "#808080",
         surfaceDark: "#404040",

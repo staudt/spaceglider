@@ -10,7 +10,8 @@ import { drawDebugHud } from "./rendering/debug-hud.js";
 import { drawSurfaceObjects } from "./rendering/structures.js";
 import { updateEffects, drawEffects } from "./rendering/effects.js";
 import { updateRings, drawRings } from "./rendering/rings.js";
-import { applyGlideCushion, computeTotalGravity } from "./simulation/physics.js";
+import { applyGlideCushion, applyReferenceFrameMatching, computeTotalGravity } from "./simulation/physics.js";
+import { updateOrbits, getPlanetVelocity } from "./simulation/orbits.js";
 import {
   createShip,
   updateShipOrientation,
@@ -78,6 +79,14 @@ function step(now) {
   updateShipOrientation(ship, keys, dt, config);
   updateShipSpeed(ship, keys, dt, config);
 
+  // Update orbital positions (planets around sun, moons around planets)
+  updateOrbits(
+    universe.orbitalState,
+    universe.planets,
+    dt,
+    config.time.orbitalTimeScale || 1
+  );
+
   // Apply multi-body gravity (all planets + sun)
   const gravity = computeTotalGravity(ship.pos, universe.planets, universe.sun);
   ship.vel.add(gravity.mul(dt));
@@ -92,6 +101,10 @@ function step(now) {
 
   if (planet) {
     applyGlideCushion(ship, planet, config.ship.cushionHeight);
+
+    // Apply reference frame matching to keep ship moving with the planet
+    const planetVel = getPlanetVelocity(universe.orbitalState, planet.name, dt);
+    applyReferenceFrameMatching(ship, planet, planetVel, info.tAtmo, dt, config.ship.referenceFrameStrength || 0.5);
   }
 
   const cam = createCamera(ship, canvas, config);

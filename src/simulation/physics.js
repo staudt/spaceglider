@@ -78,3 +78,31 @@ export function integrate(ship, accel, dt, maxSpeed) {
 
   ship.pos.add(Vec3.mul(ship.vel, dt));
 }
+
+/**
+ * Apply reference frame matching to keep ship moving with a nearby planet
+ * When close to a planet, the ship's velocity is blended toward the planet's orbital velocity
+ * This prevents the ship from being "left behind" as the planet orbits
+ * @param {object} ship - Ship with pos and vel
+ * @param {object} planet - Nearest planet
+ * @param {Vec3} planetVelocity - Planet's orbital velocity
+ * @param {number} tAtmo - Atmosphere blend factor (0 = space, 1 = surface)
+ * @param {number} dt - Delta time
+ * @param {number} strength - How strongly to match reference frame (0-1)
+ */
+export function applyReferenceFrameMatching(ship, planet, planetVelocity, tAtmo, dt, strength = 0.5) {
+  if (tAtmo <= 0 || !planetVelocity) return;
+
+  // Calculate ship's velocity relative to the planet
+  const relVel = Vec3.sub(ship.vel, planetVelocity);
+
+  // Blend factor: stronger when deeper in atmosphere
+  // Use tAtmo squared for smoother transition near edge
+  const blend = tAtmo * tAtmo * strength * dt * 2;
+
+  // Gradually add planet velocity to ship (matching reference frame)
+  // This is equivalent to: ship.vel = lerp(ship.vel, ship.vel_relative + planetVel, blend)
+  ship.vel.x += planetVelocity.x * blend;
+  ship.vel.y += planetVelocity.y * blend;
+  ship.vel.z += planetVelocity.z * blend;
+}
