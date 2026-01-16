@@ -9,6 +9,7 @@ import { drawHud } from "./rendering/hud.js";
 import { drawDebugHud } from "./rendering/debug-hud.js";
 import { drawSurfaceObjects } from "./rendering/structures.js";
 import { updateEffects, drawEffects } from "./rendering/effects.js";
+import { updateRings, drawRings } from "./rendering/rings.js";
 import { applyGlideCushion, computeTotalGravity } from "./simulation/physics.js";
 import {
   createShip,
@@ -102,6 +103,11 @@ function step(now) {
       updateEffects(effects, dt, cam, planet, info.tAtmo);
     }
   }
+
+  // Update ring systems (orbital motion)
+  for (const [p, ringData] of universe.rings) {
+    updateRings(ringData, dt);
+  }
   const speed = ship.vel.len();
 
   // Apply easing curves for smoother atmosphere transitions
@@ -162,7 +168,7 @@ function step(now) {
     draw: () => drawSun(ctx, cam, universe.sun, config.camera.nearPlane),
   });
 
-  // Add planets
+  // Add planets and their rings
   for (const p of universe.planets) {
     const planetDist = Vec3.sub(p.position, cam.C).len();
     const tAtmo = planet && p === planet ? info.tAtmo : 0;
@@ -182,6 +188,18 @@ function step(now) {
         type: 'planet_surface',
         distance: planetDist - 0.05,
         draw: () => drawPlanetSurface(ctx, cam, p, tAtmo, universe.sun, config, config.camera.nearPlane),
+      });
+    }
+
+    // Draw rings if planet has them
+    const ringData = universe.rings.get(p);
+    if (ringData) {
+      // Rings are drawn at the same distance as the planet
+      // The ring renderer handles its own depth sorting for particles
+      drawables.push({
+        type: 'rings',
+        distance: planetDist,
+        draw: () => drawRings(ctx, cam, p, ringData, universe.sun, config.camera.nearPlane),
       });
     }
   }

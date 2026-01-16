@@ -1,6 +1,7 @@
 import { Vec3, clamp } from "../core/math.js";
 import { createSurfaceObjects } from "../rendering/structures.js";
 import { createPlanetEffects } from "../rendering/effects.js";
+import { createRingParticles } from "../rendering/rings.js";
 
 export function createSun(config) {
   const pos = config.sun.position;
@@ -57,7 +58,17 @@ export function createUniverse(config) {
     }
   }
 
-  return { planets, sun, surfaceObjects, effects };
+  // Generate ring systems for planets that have them
+  const rings = new Map();
+  for (let i = 0; i < planets.length; i++) {
+    const planet = planets[i];
+    const planetConfig = config.planets[i];
+    if (planetConfig.rings) {
+      rings.set(planet, createRingParticles(planet, planetConfig.rings));
+    }
+  }
+
+  return { planets, sun, surfaceObjects, effects, rings };
 }
 
 export function nearestPlanetInfo(shipPos, planets) {
