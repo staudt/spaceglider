@@ -10,9 +10,9 @@ export const config = {
   },
 
   ship: {
-    startPosition: [0, 0, -400000],  // starting position in world space
-    cruiseSpeed: 1200,      // speed at 100% throttle
-    turboSpeed: 25000,      // speed when holding W
+    startPosition: [0, 0, -1200000],  // starting position in world space
+    cruiseSpeed: 3600,      // speed at 100% throttle
+    turboSpeed: 75000,      // speed when holding W
     speedResponse: 1.0,    // ~3 seconds to reach target (higher = faster)
     brakeResponse: 1.5,    // ~2 seconds to brake (higher = faster)
     cushionHeight: 10,
@@ -44,9 +44,9 @@ export const config = {
 
   sun: {
     color: "#f0d858",
-    size: 30000,
+    size: 90000,
     position: [0, 0, 0],  // Center of the solar system
-    GM: 1e8,              // Weak gravity - planets dominate near them
+    GM: 3e8,              // Weak gravity - planets dominate near them
   },
 
   stars: {
@@ -70,9 +70,9 @@ export const config = {
   planets: [
     {
       name: "Verdis",
-      position: [150000, -22000, 50000],
-      radius: 16000,
-      atmosphereRadius: 23000,
+      position: [450000, -66000, 150000],
+      radius: 48000,
+      atmosphereRadius: 69000,
       GM: 7.6e8,
       colors: {
         surface: "#1ea33a",
@@ -87,9 +87,9 @@ export const config = {
     },
     {
       name: "Inferno",
-      position: [-106065, 0, 106065],
-      radius: 2000,
-      atmosphereRadius: 3000,
+      position: [-318195, 0, 318195],
+      radius: 6000,
+      atmosphereRadius: 9000,
       GM: 4.2e8,
       colors: {
         surface: "#c44a1a",
@@ -106,9 +106,9 @@ export const config = {
     },
     {
       name: "Glaciem",
-      position: [66000, 15000, -150000],
-      radius: 24000,
-      atmosphereRadius: 29000,
+      position: [198000, 45000, -450000],
+      radius: 72000,
+      atmosphereRadius: 87000,
       GM: 5.8e8,
       colors: {
         surface: "#4a9ebb",
@@ -124,9 +124,9 @@ export const config = {
     },
     {
       name: "Magma",
-      position: [15065, -8800, -16065],
-      radius: 3000,
-      atmosphereRadius: 6000,
+      position: [45195, -26400, -48195],
+      radius: 9000,
+      atmosphereRadius: 18000,
       GM: 4.0e8,
       colors: {
         surface: "#b80b0b",
@@ -142,9 +142,9 @@ export const config = {
     },
     {
       name: "Solitarius",
-      position: [420000, 6000, 30000],
-      radius: 4000,
-      atmosphereRadius: 4600,
+      position: [1260000, 18000, 90000],
+      radius: 12000,
+      atmosphereRadius: 13800,
       GM: 4.0e8,
       colors: {
         surface: "#583072",
